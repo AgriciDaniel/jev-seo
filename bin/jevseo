@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Run the jevseo package from this skill folder, from any working directory.
+here="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+PYTHONPATH="$here${PYTHONPATH:+:$PYTHONPATH}" exec python3 -m jevseo "$@"

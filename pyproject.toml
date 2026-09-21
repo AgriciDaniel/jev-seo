@@ -1,0 +1,18 @@
+[project]
+name = "jev-seo"
+version = "0.1.0"
+description = "Live website SEO audit with typed Jev judgments and PDF, XLSX and Markdown reports"
+requires-python = ">=3.10"
+dependencies = ["requests", "beautifulsoup4", "lxml", "matplotlib", "jinja2", "weasyprint", "openpyxl"]
+
+[project.optional-dependencies]
+render = ["playwright"]
+
+[project.scripts]
+jevseo = "jevseo.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["jevseo*"]
+
+[tool.setuptools.package-data]
+jevseo = ["templates/*"]

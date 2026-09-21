@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" width="1200" height="420" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+  <title>Jev SEO pipeline: a source finds, code decides, Jev judges, Claude writes</title>
+  <rect width="1200" height="420" rx="24" fill="#fcfcfb"/>
+  <text x="48" y="58" font-size="13" font-weight="700" letter-spacing="2.5" fill="#d45bb6">HOW A JEV SEO AUDIT RUNS</text>
+  <text x="48" y="96" font-size="30" font-weight="800" fill="#0b0b0b">A source finds, code decides, Jev judges, Claude writes</text>
+  <g font-size="15">
+    <!-- step 1 -->
+    <rect x="48" y="140" width="190" height="218" rx="16" fill="#f4f3ef"/>
+    <circle cx="78" cy="172" r="14" fill="#0b0b0b"/><text x="78" y="177" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+    <text x="68" y="222" font-size="20" font-weight="750" fill="#0b0b0b">Crawl</text>
+    <text x="68" y="250" fill="#52514e">robots.txt, sitemaps,</text>
+    <text x="68" y="272" fill="#52514e">internal links, JS</text>
+    <text x="68" y="294" fill="#52514e">rendering if needed</text>
+    <text x="68" y="334" font-size="13" font-weight="700" fill="#0b7a52">LOCAL</text>
+    <text x="250" y="246" font-size="26" font-weight="800" fill="#d45bb6">›</text>
+    <!-- step 2 -->
+    <rect x="272" y="140" width="190" height="218" rx="16" fill="#f4f3ef"/>
+    <circle cx="302" cy="172" r="14" fill="#0b0b0b"/><text x="302" y="177" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+    <text x="292" y="222" font-size="20" font-weight="750" fill="#0b0b0b">50 rules</text>
+    <text x="292" y="250" fill="#52514e">status, canonicals,</text>
+    <text x="292" y="272" fill="#52514e">titles, schema, links,</text>
+    <text x="292" y="294" fill="#52514e">each with a source</text>
+    <text x="292" y="334" font-size="13" font-weight="700" fill="#0b7a52">LOCAL</text>
+    <text x="474" y="246" font-size="26" font-weight="800" fill="#d45bb6">›</text>
+    <!-- step 3 Jev -->
+    <rect x="496" y="140" width="190" height="218" rx="16" fill="#0b0b0b"/>
+    <circle cx="526" cy="172" r="14" fill="#d45bb6"/><text x="526" y="177" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+    <text x="516" y="222" font-size="20" font-weight="750" fill="#fff">Jev judges</text>
+    <text x="516" y="250" fill="#c3c2b7">Choice, Score, Noul</text>
+    <text x="516" y="272" fill="#c3c2b7">per page, batched,</text>
+    <text x="516" y="294" fill="#c3c2b7">probabilities kept</text>
+    <text x="516" y="322" font-size="13" font-weight="700" fill="#d45bb6">TYPESAFE API</text><text x="516" y="339" font-size="13" font-weight="700" fill="#d45bb6">PAY PER USE</text>
+    <text x="698" y="246" font-size="26" font-weight="800" fill="#d45bb6">›</text>
+    <!-- step 4 -->
+    <rect x="720" y="140" width="190" height="218" rx="16" fill="#f4f3ef"/>
+    <circle cx="750" cy="172" r="14" fill="#0b0b0b"/><text x="750" y="177" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+    <text x="740" y="222" font-size="20" font-weight="750" fill="#0b0b0b">Measure</text>
+    <text x="740" y="250" fill="#52514e">Core Web Vitals and</text>
+    <text x="740" y="272" fill="#52514e">Lighthouse, mobile</text>
+    <text x="740" y="294" fill="#52514e">and desktop</text>
+    <text x="740" y="334" font-size="13" font-weight="700" fill="#1d5fae">GOOGLE API · FREE</text>
+    <text x="922" y="246" font-size="26" font-weight="800" fill="#d45bb6">›</text>
+    <!-- step 5 -->
+    <rect x="944" y="140" width="208" height="218" rx="16" fill="#f4f3ef"/>
+    <circle cx="974" cy="172" r="14" fill="#0b0b0b"/><text x="974" y="177" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">5</text>
+    <text x="964" y="222" font-size="20" font-weight="750" fill="#0b0b0b">Score and write</text>
+    <text x="964" y="250" fill="#52514e">code ranks actions,</text>
+    <text x="964" y="272" fill="#52514e">Claude writes the story,</text>
+    <text x="964" y="294" fill="#52514e">PDF · XLSX · MD</text>
+    <text x="964" y="334" font-size="13" font-weight="700" fill="#0b7a52">LOCAL</text>
+  </g>
+  <text x="48" y="396" font-size="13" fill="#898781">Default mode: no SEO data subscription (15 pages, 44 s, 0.0019 USD of Jev). Optional --full adds DataForSEO rankings, keywords and backlinks, pay per call (about 0.30 USD a site).</text>
+</svg>

@@ -1,0 +1,4 @@
+__pycache__/
+*.pyc
+jev-seo-reports/
+.env
