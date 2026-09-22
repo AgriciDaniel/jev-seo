@@ -39,16 +39,35 @@ def _text(el) -> str:
     return re.sub(r"\s+", " ", NOISE.sub(" ", el.get_text(" ", strip=True))).strip()
 
 
-def _jsonld(soup) -> tuple[list[str], list[str]]:
-    types, errors = [], []
+def _node_summary(node: dict, types: list[str]) -> dict:
+    """What the property checks need from a JSON-LD node, without keeping its content."""
+    offers = node.get("offers")
+    offer_list = offers if isinstance(offers, list) else [offers] if isinstance(offers, dict) else []
+    items = node.get("itemListElement")
+    items = items if isinstance(items, list) else []
+
+    def item_ok(i):
+        return isinstance(i, dict) and "position" in i and ("name" in i or (isinstance(i.get("item"), dict) and "name" in i["item"]))
+
+    return {
+        "types": types,
+        "keys": sorted(k for k in node if not k.startswith("@")),
+        "offers_price": any(isinstance(o, dict) and ("price" in o or "lowPrice" in o) for o in offer_list),
+        "list_items": len(items),
+        "list_items_ok": all(item_ok(i) for i in items) if items else False,
+    }
+
+
+def _jsonld(soup) -> tuple[list[str], list[str], list[dict]]:
+    types, errors, nodes = [], [], []
 
     def walk(node):
         if isinstance(node, dict):
             t = node.get("@type")
-            if isinstance(t, str):
-                types.append(t)
-            elif isinstance(t, list):
-                types.extend(str(x) for x in t)
+            ts = [t] if isinstance(t, str) else [str(x) for x in t] if isinstance(t, list) else []
+            types.extend(ts)
+            if ts and len(nodes) < 40:
+                nodes.append(_node_summary(node, ts))
             for v in node.values():
                 walk(v)
         elif isinstance(node, list):
@@ -61,7 +80,7 @@ def _jsonld(soup) -> tuple[list[str], list[str]]:
             walk(json.loads(raw))
         except (json.JSONDecodeError, ValueError) as err:
             errors.append(str(err)[:120])
-    return sorted(set(types)), errors
+    return sorted(set(types)), errors, nodes
 
 
 def parse_page(url: str, html: str, site_host: str) -> dict:
@@ -79,7 +98,7 @@ def parse_page(url: str, html: str, site_host: str) -> dict:
         {"lang": link.get("hreflang"), "href": urljoin(url, link.get("href", ""))}
         for link in soup.find_all("link", hreflang=True)
     ]
-    schema_types, schema_errors = _jsonld(soup)
+    schema_types, schema_errors, schema_nodes = _jsonld(soup)
     microdata = sorted({i.get("itemtype", "").rsplit("/", 1)[-1] for i in soup.find_all(itemtype=True)} - {""})
 
     headings = {f"h{i}": [_text(h) for h in soup.find_all(f"h{i}")] for i in range(1, 4)}
@@ -137,6 +156,9 @@ def parse_page(url: str, html: str, site_host: str) -> dict:
         main_text = _text(main)
     if len(WORD.findall(main_text)) < 40:
         main_text = full_text
+    # Link and button labels inside the main content: the evidence for "is there a next step".
+    scope = main if main is not None else clone
+    ctas = list(dict.fromkeys(t for t in (_text(el) for el in scope.find_all(["a", "button"])) if 1 <= len(t.split()) <= 8))[:25]
     words = WORD.findall(main_text)
     nav = soup.find("nav")
 
@@ -162,6 +184,7 @@ def parse_page(url: str, html: str, site_host: str) -> dict:
         "heading_skips": heading_skips,
         "word_count": len(words),
         "text_excerpt": main_text[:8000],
+        "calls_to_action": ctas,
         "nav_labels": [_text(a) for a in nav.find_all("a")][:40] if nav else [],
         "text_hash": hashlib.sha1(" ".join(words).lower().encode()).hexdigest(),
         "images": {"total": len(images), "missing_alt": len(missing_alt), "empty_alt": empty_alt, "lazy": lazy, "no_dimensions": no_dims, "missing_alt_samples": missing_alt[:10]},
@@ -170,6 +193,7 @@ def parse_page(url: str, html: str, site_host: str) -> dict:
         "nofollow_links": nofollow,
         "schema_types": schema_types + [f"microdata:{m}" for m in microdata],
         "schema_errors": schema_errors,
+        "schema_nodes": schema_nodes,
         "mixed_content": sorted(set(mixed))[:20],
         "script_count": html.lower().count("<script"),
     }

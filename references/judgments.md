@@ -15,9 +15,12 @@ definitions live in `jevseo/jev.py`; this file explains them.
   0 to 1 as `score / (levels - 1)`. They are never stretched to 1 to 10.
 - Page text in state is capped at 6,000 characters and the truncation is
   flagged in state.
-- Bands: Choice and Score are decisive at confidence 0.80 or above. Noul
-  has no confidence field, so it is decisive at P(yes) 0.80 or above, or
-  0.20 or below. Everything else is "to verify".
+- Bands: a Choice is decisive at confidence 0.80 or above. A Score is
+  decisive when 0.80 or more of its probability sits on one side of the
+  midpoint (the side every finding threshold uses); spread between two
+  neighbouring levels on the same side is not doubt. Noul has no
+  confidence field, so it is decisive at P(yes) 0.80 or above, or 0.20 or
+  below. Everything else is "to verify".
 
 ## Site questions (state: homepage text, navigation, up to 80 page titles)
 
@@ -33,16 +36,16 @@ definitions live in `jevseo/jev.py`; this file explains them.
 
 | id | primitive | asks | becomes a finding when |
 |---|---|---|---|
-| page_type | Choice (11) | homepage, product or service, listing, article, about, contact, pricing, proof, support, legal, other | used for filtering and charts |
+| page_type | Choice (11, product and support options structured) | homepage, product or service, listing, article, about, contact, pricing, proof, support, legal, other | used for filtering and charts |
 | intent | Choice (6) | informational, commercial, transactional, navigational, local, unclear | commercial pages get the next-step check |
 | importance | Score (4) | role in winning customers | weights impact of every action on that page |
-| action | Choice (5) | keep, improve, rewrite, consolidate, noindex or remove | rewrite, consolidate or remove |
+| action | Choice (3) | keep or improve, rewrite, merge or remove | rewrite, or merge or remove (never on pages of 600 words or more) |
 | helpfulness | Score (4) | satisfies a visitor on its topic | below 0.45 on pages with importance 0.5 or more |
 | specificity | Score (4) | generic versus first-hand specifics | below 0.45 |
 | trust | Score (4) | evidence of expertise and accountability | below 0.45 on important pages |
 | citable | Score (4) | self-contained quotable facts for AI answers | below 0.45 |
-| answer_first | Noul | opens with the point | P(yes) below 0.5 |
-| clear_next_step | Noul | obvious relevant call to action | P(yes) below 0.5 on commercial pages |
+| answer_first | Noul (over `page.opening`) | the text after the H1 states the point in two sentences | P(yes) below 0.5 |
+| clear_next_step | Noul | the text invites a concrete next action | P(yes) below 0.5 on commercial pages |
 | title_fit | Score (4) | title describes the page and invites the click | below 0.45 |
 | meta_fit | Score (4) | description summarises what the page delivers | below 0.45 |
 | h1_fit | Noul | H1 states the topic | P(yes) below 0.5 |
@@ -68,3 +71,13 @@ and entity clarity, plus 30% rules.
 Observed on typesafe.ai, 2026-09-21: 14 requests, 47,181 input tokens,
 0.0020 USD at 0.042 USD per million input tokens (output free). About
 3,400 input tokens per page.
+
+## Wording tests
+
+2026-09-22, 30 pages and 40 keywords with blind labels (see evaluation.md).
+Adopted: structured product and support options (page type agreement 20/30
+to 27/30), a three-option action (decisive 1/30 to 27/30), a name-based
+other-brand question (decisive 22/40 to 29/40, agreement 28/40 to 30/40),
+and side-of-threshold decisiveness for Scores (side-decisive answers agreed
+90 to 97%, the rest about 50%). Kept: helpfulness, specificity, trust and
+relevance wording, where structured levels showed no clear gain.

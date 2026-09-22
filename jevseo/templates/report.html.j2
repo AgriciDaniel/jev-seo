@@ -69,6 +69,11 @@
     </div>
     {% endfor %}
   </div>
+</section>
+
+<section class="section">
+  <div class="kicker">Executive summary · the plan</div>
+  <h2>What works, what holds it back, what to do</h2>
   <div class="cols">
     <div class="card"><h4>What is working</h4><ul>{% for s in narrative.strengths %}<li>{{ s }}</li>{% endfor %}</ul></div>
     <div class="card"><h4>What is holding the site back</h4><ul>{% for s in narrative.risks %}<li>{{ s }}</li>{% endfor %}</ul></div>
@@ -105,12 +110,14 @@
     <tr><td><b>PageSpeed</b></td><td>Chrome UX Report field data and Lighthouse lab scores</td><td>Stand in for every page or device</td></tr>
     <tr><td><b>Claude</b></td><td>The summary and plan, citing action IDs</td><td>Add findings that the evidence does not show</td></tr>
   </table>
+  <h3>What went through each stage</h3>
+  {{ chart('funnel') }}
 </section>
 
 <!-- SCORECARD -->
 <section class="section">
   <div class="kicker">Scorecard</div>
-  <h2>Eight areas, one score</h2>
+  <h2>{{ scores.category_names | length }} areas, one score</h2>
   <div class="cols">
     <div style="flex: 0 0 55mm">{{ charts.svg.gauge | safe }}</div>
     <div>{{ chart('categories') }}</div>
@@ -143,12 +150,11 @@
 </section>
 
 <!-- SITE STRUCTURE -->
-{% if 'site_map' in charts.svg or 'funnel' in charts.svg %}
+{% if 'site_map' in charts.svg %}
 <section class="section">
   <div class="kicker">Site structure</div>
-  <h2>What the crawl found</h2>
-  <p class="lede">From everything discovered to what Jev judged, then the pages laid out by clicks from the homepage. Bigger dots are pages Jev judged more important; the outer dashed ring holds pages that no crawled page links to.</p>
-  {{ chart('funnel') }}
+  <h2>How the site is linked</h2>
+  <p class="lede">Pages laid out by clicks from the homepage. Bigger dots are pages Jev judged more important; the outer dashed ring holds pages that no crawled page links to.</p>
   {{ chart('site_map') }}
 </section>
 {% endif %}
@@ -185,15 +191,17 @@
   {% if dfs.opportunities %}
   <table>
     <tr><th>Keyword</th><th class="num">Searches/mo</th><th class="num">Difficulty</th><th>Intent</th><th class="num">Jev relevance</th><th>Page to own it</th></tr>
-    {% for k in dfs.opportunities[:10] %}<tr><td>{{ k.keyword }}</td><td class="num">{{ '{:,}'.format(k.volume) }}</td><td class="num">{{ k.difficulty if k.difficulty is not none else 'n/a' }}</td><td>{{ k.intent or '–' }}</td><td class="num">{{ '%.2f' % k.relevance if k.relevance is not none else '–' }}</td><td class="url">{{ k.target }}</td></tr>{% endfor %}
+    {% for k in dfs.opportunities[:6] %}<tr><td>{{ k.keyword }}</td><td class="num">{{ '{:,}'.format(k.volume) }}</td><td class="num">{{ k.difficulty if k.difficulty is not none else 'n/a' }}</td><td>{{ k.intent or '–' }}</td><td class="num">{{ '%.2f' % k.relevance if k.relevance is not none else '–' }}</td><td class="url">{{ k.target }}</td></tr>{% endfor %}
   </table>
   {% else %}<p class="muted">No relevant keyword opportunities passed Jev's relevance filter.</p>{% endif %}
   {% if dfs.serps %}
+  <div>
   <h3>Live Google results for the top keywords</h3>
   <table>
     <tr><th>Keyword</th><th class="num">Site position</th><th>AI Overview</th><th>Top 3 results</th></tr>
     {% for sp in dfs.serps %}<tr><td>{{ sp.keyword }}</td><td class="num">{{ sp.own_position or 'not in top 10' }}</td><td>{% if sp.ai_overview %}{% if sp.ai_overview_cites_site %}<span class="ok">yes, cites the site</span>{% else %}<span class="bad">yes, site not cited</span>{% endif %}{% else %}none{% endif %}</td><td>{{ sp.top[:3] | map(attribute='domain') | join(', ') }}</td></tr>{% endfor %}
   </table>
+  </div>
   {% endif %}
 </section>
 {% endif %}
@@ -235,9 +243,11 @@
   <h2>Page quality heatmap</h2>
   <p class="lede">Every Score and yes or no answer on a 0 to 1 scale, for the pages Jev judged most important. Darker is better. A dash means the question did not apply, for example no meta description to judge.</p>
   {{ chart('jev_heatmap') }}
+  <div class="avoid">
   <h3>How sure was Jev?</h3>
   <p>A Choice or Score answer is decisive at confidence {{ '%.2f' % act }} or above; a yes or no answer is decisive at P(yes) of {{ '%.2f' % yes }} or more, or {{ '%.2f' % no }} or less. Everything else is marked for a human check and flagged on its action.</p>
   {{ chart('jev_confidence') }}
+  </div>
   {% if jev_pairs %}
   <h3>Pages that may compete for the same searches</h3>
   <p>Code shortlisted {{ jev_pairs | length }} pairs with overlapping titles and headings; Jev judged whether a searcher would treat them as substitutes. The most likely competitors are shown; 0.6 or more becomes an action.</p>
@@ -265,8 +275,9 @@
 {% endif %}
 
 <!-- FINDINGS BY AREA -->
+{% set ns = namespace(first=true) %}
 {% for c, name in scores.category_names.items() %}{% if findings_by_cat[c] %}
-<section class="section">
+<section class="{{ 'section' if ns.first else 'flow' }}">{% set ns.first = false %}
   <div class="kicker">Findings · {{ name }}</div>
   <h2>{{ name }}{% if scores.categories[c] is not none %} <span class="muted">{{ scores.categories[c] }}</span>{% endif %}</h2>
   {% if c == 'crawl' %}
@@ -310,7 +321,7 @@
   <h2>Page inventory</h2>
   <table>
     <tr><th>Page</th><th class="num">Depth</th><th class="num">Words</th><th class="num">In</th><th>Type (Jev)</th><th>Intent (Jev)</th><th class="num">Import.</th><th>Action (Jev)</th></tr>
-    {% for p in pages %}<tr><td class="url">{{ p.short }}</td><td class="num">{{ p.depth if p.depth != 99 else '–' }}</td><td class="num">{{ p.words }}</td><td class="num">{{ p.inlinks }}</td><td>{{ (p.page_type or '–') | replace('_', ' ') }}</td><td>{{ p.intent or '–' }}</td><td class="num">{{ '%.2f' % p.importance if p.importance is not none else '–' }}</td><td>{{ (p.action or '–') | replace('_', ' ') }}</td></tr>{% endfor %}
+    {% for p in pages %}<tr><td class="url">{{ p.short }}</td><td class="num">{{ p.depth if p.depth != 99 else '–' }}</td><td class="num">{{ p.words }}</td><td class="num">{{ p.inlinks }}</td><td>{{ (p.page_type or '–') | replace('_', ' ') }}</td><td>{{ p.intent or '–' }}</td><td class="num">{{ '%.2f' % p.importance if p.importance is not none else '–' }}</td><td>{{ {'keep_or_improve': 'keep', 'merge_or_remove': 'merge or remove'}.get(p.action, (p.action or '–') | replace('_', ' ')) }}</td></tr>{% endfor %}
   </table>
 </section>
 <section class="section">
@@ -333,7 +344,7 @@
     <li>Rules marked heuristic are editorial conventions, not search engine requirements.</li>
   </ul>
   <h3>Sources</h3>
-  <table>{% for src in sources %}<tr><td class="url"><a href="{{ src }}">{{ src }}</a></td></tr>{% endfor %}</table>
+  <div class="sources">{% for src in sources %}<a href="{{ src }}">{{ src | replace('https://', '') }}</a>{% endfor %}</div>
   <p class="caption">Generated {{ generated }} by jev-seo {{ d.tool.version }}. Crawl started {{ d.run.started_at }}.</p>
 </section>
 </body>

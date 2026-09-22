@@ -1,151 +1,150 @@
-# Jev SEO
+<a name="jev-seo"></a>
 
-**One homepage URL in. A full, live SEO audit out**, judged by
-[Jev](https://docs.typesafe.ai/primitives) (TypeSafe's System One model) and
-delivered as a designed PDF, an Excel action tracker and a Markdown report.
+# ![jev-seo](docs/assets/banner.png)
 
+[![version](https://img.shields.io/badge/version-0.1.0-d45bb6?style=flat-square&labelColor=0b0b0b)](CHANGELOG.md)
+[![checks](https://img.shields.io/github/actions/workflow/status/AgriciDaniel/jev-seo/ci.yml?branch=main&label=checks&style=flat-square&labelColor=0b0b0b)](https://github.com/AgriciDaniel/jev-seo/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-666666?style=flat-square&labelColor=0b0b0b)](LICENSE)
+[![python](https://img.shields.io/badge/python-3.10%2B-666666?style=flat-square&labelColor=0b0b0b)](pyproject.toml)
+[![jev](https://img.shields.io/badge/judged%20by-jev--1.13.0-d45bb6?style=flat-square&labelColor=0b0b0b)](https://docs.typesafe.ai/primitives)
+
+jev-seo is a **live SEO audit for any website, from one homepage URL**. It crawls the site, checks it against 52 rules tied to Google Search Central, measures Core Web Vitals, and asks [Jev](https://docs.typesafe.ai/primitives), TypeSafe's System One model, typed questions about every page. Code scores and ranks every fix, and you get a designed PDF, an Excel action tracker and a Markdown report, all built from the same data.
+
+It runs as a Claude Code skill (`/jev-seo https://example.com`) or from the command line. The standard mode needs no SEO data subscription and costs about a cent in Jev per site. An optional `--full` mode adds rankings, keywords and backlinks from DataForSEO for about 0.30 USD.
+
+<p align="left"><img src="docs/assets/preview-summary.jpg" alt="Cover, executive summary and plan of a jev-seo PDF report" width="880"></p>
+
+## Why it is useful
+
+| What you get | Why it matters |
+| --- | --- |
+| A live crawl, not a template | robots.txt, sitemaps, redirects, broken links, canonicals, structured data and JavaScript-only pages, checked on the real site in about a minute. |
+| Meaning, judged by Jev | Page type, search intent, importance, helpfulness, specificity, trust, citability, title and meta fit, and pages competing for the same searches, each a typed answer with its probabilities kept. |
+| Ranked, explained fixes | Every action has an ID, priority, impact, effort, evidence, a fix and an official source. Heuristics are labelled as heuristics. |
+| Honest numbers | Missing data stays missing. Scores rank work; they never predict rankings or traffic. The written summary is checked against the audit before it renders. |
+| Three formats, one source | PDF for the client, XLSX to track the work, Markdown for GitHub and Obsidian, all from one `audit.json`. |
+
+**Start here:** [Example report](examples/claude-seo.md/) · [Skill workflow](SKILL.md) · [How Jev is asked](references/judgments.md) · [How far to trust it](references/evaluation.md) · [Method and formulas](references/method.md)
+
+## See the output
+
+A full audit of [claude-seo.md](https://claude-seo.md), run with `--full` on 2026-09-22. Every file is in [`examples/claude-seo.md/`](examples/claude-seo.md/): [report.pdf](examples/claude-seo.md/report.pdf) · [report.xlsx](examples/claude-seo.md/report.xlsx) · [report.md](examples/claude-seo.md/report.md) · [digest.md](examples/claude-seo.md/digest.md) · [narrative.json](examples/claude-seo.md/narrative.json).
+
+**PDF: how the audit was made, the scorecard and the priorities**
+
+<p align="left"><img src="docs/assets/preview-method.jpg" alt="Pipeline, scorecard and priority pages" width="880"></p>
+
+**PDF: search visibility from DataForSEO, filtered by Jev**
+
+<p align="left"><img src="docs/assets/preview-visibility.jpg" alt="Rankings, keyword opportunities and site structure pages" width="880"></p>
+
+**PDF: how Jev reads the site**
+
+<p align="left"><img src="docs/assets/preview-jev.jpg" alt="Jev judgment cards, quality heatmap and where to invest" width="880"></p>
+
+**XLSX: the Actions sheet is the editable status tracker** (rendered preview of the real workbook cells)
+
+<p align="left"><img src="docs/assets/preview-xlsx.png" alt="Actions sheet of the jev-seo workbook" width="880"></p>
+
+**Markdown: renders on GitHub and in Obsidian, with charts**
+
+<p align="left"><img src="docs/assets/preview-md.png" alt="Markdown report rendered" width="560"></p>
+
+**Live progress while it runs** (lines from a real run)
+
+<p align="left"><img src="docs/assets/preview-terminal.png" alt="jevseo progress output" width="720"></p>
+
+| Impact versus effort | Keywords worth winning | Where to invest |
+| --- | --- | --- |
+| ![Impact versus effort](docs/assets/impact_effort.png) | ![Keyword opportunities](docs/assets/opportunities.png) | ![Where to invest](docs/assets/invest.png) |
+
+## Try it
+
+Python 3.10+:
+
+```sh
+git clone https://github.com/AgriciDaniel/jev-seo.git
+cd jev-seo
+pip install requests beautifulsoup4 lxml matplotlib jinja2 weasyprint openpyxl
+bin/jevseo doctor                              # dependencies and keys, never prints values
+bin/jevseo run https://example.com             # audit and render with an automatic summary
 ```
-/jev-seo https://example.com
+
+Reports land in `jev-seo-reports/<domain>-<stamp>/`. The offline tests need no keys and spend nothing:
+
+```sh
+python -m unittest discover -s tests -v
 ```
 
-![How a Jev SEO audit runs](docs/assets/pipeline.svg)
+In Claude Code, link the folder as a skill (`ln -s "$PWD" ~/.claude/skills/jev-seo`) and run `/jev-seo https://example.com`. The skill runs the audit in the background, relays progress, reads the digest, checks surprising findings, writes the narrative and renders the three reports.
 
-## What you get
-
-A PDF of about 20 pages with a score gauge, a written executive summary, the three
-actions that matter most, and the method behind every number.
-
-![Cover, executive summary and scorecard](docs/assets/preview-summary.jpg)
-
-Every fix is ranked by impact and effort, with the site's structure and
-the pages worth investing in drawn out.
-
-![Priorities, site structure and where to invest](docs/assets/preview-priorities.jpg)
-
-Jev's typed answers are shown as they came back, with probabilities and a
-"verify" flag on anything outside the decisive band.
-
-![Jev site judgments and page quality heatmap](docs/assets/preview-jev.jpg)
-
-| Impact versus effort | Site structure | Where to invest |
-|---|---|---|
-| ![Impact versus effort](docs/assets/impact_effort.png) | ![Site structure](docs/assets/site_map.png) | ![Where to invest](docs/assets/invest.png) |
-
-Sample: [docs/sample/typesafe.ai-report.pdf](docs/sample/typesafe.ai-report.pdf),
-a live audit of the public typesafe.ai site (15 URLs, 44 seconds, 0.0019 USD
-of Jev).
-
-Alongside the PDF:
-
-- **report.xlsx**: an Actions sheet you can edit (status, owner, due date
-  with dropdowns), a Summary that counts from it live, every page, every raw
-  Jev answer with probabilities, technical checks, performance and method.
-- **report.md**: the same report in Markdown with chart images and Mermaid
-  pies for GitHub and Obsidian.
-- **audit.json** and **digest.md**: the single dataset every export is
-  built from, and the evidence brief the narrative is written from.
+```sh
+bin/jevseo audit https://example.com                            # crawl, rules, Jev, PageSpeed -> audit.json + digest.md
+bin/jevseo render jev-seo-reports/<dir>                         # -> report.pdf, report.xlsx, report.md
+bin/jevseo audit https://example.com --full                     # add DataForSEO (paid per call)
+bin/jevseo audit https://example.com --full --reuse-dfs <dir>   # reuse DataForSEO data already collected
+bin/jevseo rescore jev-seo-reports/<dir>                        # rebuild findings and scores offline, no spend
+```
 
 ## What runs where, and what it costs
 
+<p align="left"><img src="docs/assets/pipeline.svg" alt="How a jev-seo audit runs" width="880"></p>
+
 | Part | Where it runs | Cost |
-|---|---|---|
-| Crawl: robots.txt, sitemaps, links, redirects | Local, plain HTTP requests to the audited site | Free |
-| JavaScript rendering for script-only pages | Local headless Chromium (Playwright) | Free |
-| 50 rule checks, scoring, ranking | Local Python | Free |
-| Charts, PDF, workbook, Markdown | Local (matplotlib, WeasyPrint, openpyxl) | Free |
-| Core Web Vitals and Lighthouse | Google PageSpeed Insights API | Free (API key only raises rate limits) |
-| Page and site judgments | TypeSafe Jev API | Pay per use: 0.042 USD per million input tokens, output free |
-| Rankings, keywords, competitors, backlinks, live SERPs, AI answer mentions (`--full` only) | DataForSEO API | Pay per call, cost reported per call; about 0.30 USD for one site, capped by `--dfs-budget` (default 1.00 USD) |
-| Narrative | Claude, in the session running the skill | Part of your Claude plan |
+| --- | --- | --- |
+| Crawl, rules, scoring, charts, PDF, XLSX, MD | Your machine | Free |
+| JavaScript rendering for script-only pages | Local headless Chromium (Playwright, optional) | Free |
+| Core Web Vitals and Lighthouse | Google PageSpeed Insights API | Free |
+| Page, site and keyword judgments | TypeSafe Jev API | 0.042 USD per million input tokens; about 0.00015 USD per page |
+| Rankings, keywords, competitors, backlinks, live SERPs, AI mentions (`--full`) | DataForSEO API | Reported per call; about 0.30 USD per site |
 
-The default mode needs no SEO data subscription: no DataForSEO, Semrush,
-Ahrefs or SERP scraping. `--full` adds DataForSEO for the data a crawl cannot
-see (rankings, search volumes, backlinks, who else ranks), and Jev filters it:
-every keyword is judged for relevance to the business, searches for other
-brands are dropped, and each keeper is mapped to the page that should own it.
-Measured Jev spend is about 0.00015 USD per page (a 60 page site is roughly
-0.01 USD), and `--jev-budget` (default 0.25 USD) is enforced before every
-request. Without a TypeSafe key the audit still runs and marks the Jev
-sections as not assessed.
+Both paid APIs sit behind hard caps (`--jev-budget`, default 0.25 USD; `--dfs-budget`, default 1.00 USD) checked before every request, and every call is in the report's cost ledger. Keys come from the environment: `TYPESAFE_API_KEY`, optionally `PAGESPEED_API_KEY`, and for `--full` `DATAFORSEO_USERNAME` and `DATAFORSEO_PASSWORD`. Without the TypeSafe key the audit still runs and marks the Jev sections as not assessed.
 
-## How it thinks
+## How far to trust it
 
-**A source finds, code decides, Jev judges, Claude writes.**
+Measured on 2026-09-22 and recorded in [references/evaluation.md](references/evaluation.md):
 
-- Anything a count, a status code or a string match can decide is decided
-  by code, and every rule cites Google Search Central or a web standard.
-- Jev answers narrow typed questions (Choice, Score, Noul), batched per
-  page: page type, search intent, importance, helpfulness, specificity,
-  trust, citability, title and meta fit, and whether two pages compete.
-  Code never asks what it can see itself.
-- Missing data stays missing. Heuristics are labelled as heuristics.
-  Scores rank work; they never predict rankings or traffic.
-- The written summary is checked: unknown action IDs are refused, and any
-  number that matches nothing in the audit is flagged before delivery.
+| Check | Result |
+| --- | --- |
+| Rule and crawl facts, re-fetched independently from the live site | All verified; word counts within 5% |
+| DataForSEO internal consistency (keyword counts, position buckets, traffic sum, referring domains) | Exact |
+| PageSpeed, fresh independent run | Identical scores and field values |
+| Jev repeatability, same 59 pages twice | Scores moved 0.03 or less on average; confident page types agreed 44/44 |
+| Jev against a blind second judge, answers Jev marks decisive | Helpfulness and specificity 28/29, opens with the point 23/23, next step 16/16, keyword relevance 27/30 |
 
-## Use
+The blind judge is a separate model, not a human, so this shows Jev is consistent and reasonable, not that it is right. Answers outside the decisive band are flagged "to verify" in every format. Question wording and the decisiveness measure were chosen by A/B tests; the results are in [references/judgments.md](references/judgments.md).
 
-In Claude Code: `/jev-seo https://example.com`. The skill runs the audit in
-the background with live progress, reads the digest, spot-checks the top
-findings, writes the narrative and renders the reports.
+## What works
 
-From a terminal:
+- Polite crawl: robots.txt and Crawl-delay, sitemap indexes, redirects recorded separately, host and HTTPS probes, soft 404 check, llms.txt, a private-network guard on every redirect hop.
+- 52 rules across crawl and indexing, on-page, content, links, structured data (including properties Google requires for rich results), AI crawler access, performance and security.
+- Jev: 13 page questions, 5 site questions, competing page pairs, and in `--full` mode keyword relevance, other-brand checks and the best page for each keyword. The homepage type is set by code, never asked.
+- DataForSEO in `--full` mode: ranked keywords, estimated traffic, competitors, referring domains compared, keyword suggestions, ideas and gaps, live Google results with AI Overview citations, LLM mentions.
+- PDF: cover, summary, plan, pipeline, scorecard, impact versus effort, site map, rankings, keyword opportunities, Jev cards, quality heatmap, where to invest, findings by area, page inventory, method, sources.
+- XLSX: Actions tracker with dropdowns, Summary counting from it, Pages, raw Jev judgments with probabilities, Technical, Performance, Rankings, Opportunities, Competitors, SERPs, AI mentions, Charts, Method.
+- Markdown with charts, Mermaid pies and a contents line.
+- Narrative checks: unknown action IDs are refused; numbers not in the audit and mismatched effort bands are flagged.
 
-```bash
-bin/jevseo doctor                          # dependencies and keys (never prints values)
-bin/jevseo audit https://example.com       # -> jev-seo-reports/<domain>-<stamp>/audit.json + digest.md
-bin/jevseo render jev-seo-reports/<dir>    # -> report.pdf, report.xlsx, report.md
-bin/jevseo rescore jev-seo-reports/<dir>   # rebuild findings and scores offline, no spend
-bin/jevseo run https://example.com         # audit and render with an automatic summary
-bin/jevseo audit https://example.com --full                      # add DataForSEO (paid per call)
-bin/jevseo audit https://example.com --full --reuse-dfs <dir>    # reuse DataForSEO data already collected
-```
-
-Progress streams live in seven stages:
-
-```
-[jevseo 00:00] == 1/7 Crawl: robots.txt, sitemaps, then pages
-[jevseo 00:07] == 3/7 DataForSEO: location 2840, language en, budget $1.00
-[jevseo 00:20] DataForSEO: 17 requests, $0.2995, 0 failed, 0 skipped by budget
-[jevseo 00:20] == 4/7 Jev judgments: 43 pages, budget $0.25
-[jevseo 00:30] Jev: judging relevance and best page for 80 keywords
-[jevseo 00:33] == 5/7 PageSpeed: 3 pages x mobile and desktop, about 30 to 60 seconds
-[jevseo 01:02] == 6/7 Scoring
-```
-
-Keys come from the environment or `~/Desktop/Keys/.env`:
-`TYPESAFE_API_KEY` for Jev, optionally `PAGESPEED_API_KEY`, and for `--full`
-`DATAFORSEO_USERNAME` and `DATAFORSEO_PASSWORD`.
-
-## Requirements
-
-Python 3.10+ with requests, beautifulsoup4, lxml, matplotlib, jinja2,
-weasyprint and openpyxl. Playwright with Chromium is optional and only used
-for pages whose raw HTML is a JavaScript shell. Inter is used when
-installed.
+This is an evidence tool, not a rank tracker or a replacement for Search Console. It does not measure traffic, revenue or rankings over time.
 
 ## Layout
 
 ```
-SKILL.md                 skill entrypoint (workflow, options, rules)
-bin/jevseo               wrapper that runs the package from any directory
-jevseo/                  crawl, parse, checks, jev, psi, score, cli
-jevseo/report/           view model, charts, pdf, xlsx, md
-jevseo/templates/        report HTML and CSS
-references/              narrative contract, Jev judgment registry, method
-docs/                    README visuals and the sample report
-tests/                   offline tests (no network, no spend)
-```
-
-```bash
-python3 -m unittest discover -s tests -v
+SKILL.md              Claude Code skill: workflow, options, rules
+bin/jevseo            runs the package from any directory
+jevseo/               crawl, parse, checks, jev, dfs, psi, score, cli
+jevseo/report/        view model, charts, pdf, xlsx, md
+jevseo/templates/     report HTML and CSS
+references/           narrative contract, Jev question registry, evaluation, method
+examples/             a complete example audit
+docs/assets/          README images
+tests/                offline tests, no network and no spend
 ```
 
 ## Limits
 
-No Search Console or analytics data, so nothing here measures actual visits
-or revenue; in `--full` mode, rankings, volumes and traffic are DataForSEO
-estimates. Jev judgments are uncalibrated
-for this task family until a labelled set exists; answers outside the
-decisive band are flagged "to verify". Large sites are sampled at the page
-cap. See [references/method.md](references/method.md).
+Large sites are sampled at the page cap (60 by default) and the report says so. Jev thresholds are not yet tuned against human labels. PageSpeed lab scores vary between runs, and field data exists only for sites with enough Chrome traffic. DataForSEO volumes, difficulty and traffic are estimates. Rules marked heuristic are editorial conventions, not search engine requirements.
+
+## License
+
+[MIT](LICENSE). Jev is a product of TypeSafe AI; DataForSEO and PageSpeed Insights are third-party services with their own terms.

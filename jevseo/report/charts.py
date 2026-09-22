@@ -52,6 +52,29 @@ plt.rcParams.update({
 })
 
 
+def place_labels(ax, fig, items: list[tuple[float, float, str]], fontsize: float = 6.8, limit: int = 12) -> None:
+    """Greedy, collision-free labels: try positions around each point in display space;
+    skip a label rather than draw it over another label or outside the plot."""
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    axbox = ax.get_window_extent(renderer)
+    taken = []
+    offsets = [(6, 4, "left", "bottom"), (6, -4, "left", "top"), (-6, 4, "right", "bottom"), (-6, -4, "right", "top"), (0, 9, "center", "bottom"), (0, -9, "center", "top")]
+    placed = 0
+    for x, y, text in items:
+        if placed >= limit:
+            break
+        for dx, dy, ha, va in offsets:
+            t = ax.annotate(text, (x, y), xytext=(dx, dy), textcoords="offset points", fontsize=fontsize, ha=ha, va=va, color=INK, zorder=5)
+            bb = t.get_window_extent(renderer).expanded(1.08, 1.15)
+            inside = axbox.x0 - 2 <= bb.x0 and bb.x1 <= axbox.x1 + 40 and axbox.y0 - 2 <= bb.y0 and bb.y1 <= axbox.y1 + 2
+            if inside and not any(bb.overlaps(o) for o in taken):
+                taken.append(bb)
+                placed += 1
+                break
+            t.remove()
+
+
 class ChartSet:
     def __init__(self, out: Path):
         self.out = out
@@ -162,7 +185,7 @@ def severity_by_category(cs: ChartSet, actions: list[dict], names: dict) -> None
 def impact_effort(cs: ChartSet, actions: list[dict]) -> None:
     if not actions:
         return
-    fig, ax = plt.subplots(figsize=(6.4, 3.4))
+    fig, ax = plt.subplots(figsize=(6.4, 2.85))
     ax.axvspan(0.5, 2.5, ymin=0.5, ymax=1, color="#f7e3f1", zorder=0)
     ax.text(0.6, 103, "QUICK WINS", fontsize=7.5, fontweight="bold", color=RAMP[4])
     ax.text(4.4, 103, "BIG BETS", fontsize=7.5, fontweight="bold", color=INK2, ha="right")
@@ -171,6 +194,7 @@ def impact_effort(cs: ChartSet, actions: list[dict]) -> None:
     ax.axhline(50, color=GRID, lw=0.8)
     ax.axvline(2.5, color=GRID, lw=0.8)
     seen: dict[tuple, int] = {}
+    labels = []
     for a in actions[:30]:
         key = (a["effort"], round(a["impact"] / 6))
         k = seen.get(key, 0)
@@ -178,12 +202,13 @@ def impact_effort(cs: ChartSet, actions: list[dict]) -> None:
         x = a["effort"] + (k % 4 - 1.5) * 0.14
         ax.scatter(x, a["impact"], s=90, color=PRIORITY[a["priority"]], edgecolor=SURFACE, linewidth=1.5, zorder=3)
         if a["priority"] == "P1" or a["impact"] >= 45:
-            ax.annotate(a["action_id"].replace("JEV-", ""), (x, a["impact"]), xytext=(5, 3), textcoords="offset points", fontsize=7, color=INK)
+            labels.append((x, a["impact"], a["action_id"].replace("JEV-", "")))
     for p, c in PRIORITY.items():
         ax.scatter([], [], s=50, color=c, label=p)
-    ax.legend(loc="upper right", bbox_to_anchor=(1, 0.93), frameon=False, fontsize=8, handletextpad=0.2)
+    ax.legend(loc="lower center", bbox_to_anchor=(0.5, 1.02), ncol=3, frameon=False, fontsize=8, handletextpad=0.2)
     ax.set_xlim(0.5, 4.5)
     ax.set_ylim(0, 110)
+    place_labels(ax, fig, labels, fontsize=7, limit=15)
     ax.set_xticks([1, 2, 3, 4], ["Hours", "A day", "Days", "A project"])
     ax.set_xlabel("effort (planning estimate)")
     ax.set_ylabel("relative impact")
@@ -311,63 +336,68 @@ def cwv_bullets(cs: ChartSet, field: dict | None) -> None:
 
 
 def site_map(cs: ChartSet, nodes: list[dict], edges: list[tuple[str, str]], home: str) -> None:
-    """Pages on rings by click depth, sized by Jev importance, coloured by Jev page type."""
+    """Pages on evenly spaced rings by click depth, sized by Jev importance, coloured by Jev page type.
+    The outer dashed ring holds pages no crawled page links to."""
     import math
 
     if len(nodes) < 2:
         return
-    types = [t for t, _ in sorted(((t, sum(1 for n in nodes if n["type"] == t)) for t in {n["type"] for n in nodes if n["type"]}), key=lambda kv: -kv[1])]
-    top = types[:3]
+    counts: dict[str, int] = {}
+    for n in nodes:
+        if n["type"]:
+            counts[n["type"]] = counts.get(n["type"], 0) + 1
+    top = sorted(counts, key=lambda t: -counts[t])[:3]
     colour = {t: CATEGORICAL[i] for i, t in enumerate(top)}
     rings: dict[int, list[dict]] = {}
     for n in nodes:
+        if n["url"] == home:
+            continue
         d = n["depth"] if n["depth"] is not None and n["depth"] < 99 else -1
         rings.setdefault(d, []).append(n)
-    max_ring = max(k for k in rings if k >= 0) if any(k >= 0 for k in rings) else 0
-    pos = {}
-    for d, members in rings.items():
-        r = (max_ring + 1.3) if d < 0 else d
-        members.sort(key=lambda n: n["url"])
+    order = sorted(d for d in rings if d >= 0) + ([-1] if -1 in rings else [])
+    radius = {d: (i + 1) / len(order) for i, d in enumerate(order)}
+    pos = {home: (0.0, 0.0)}
+    for d in order:
+        members = sorted(rings[d], key=lambda n: n["url"])
         for i, n in enumerate(members):
-            a = 2 * math.pi * i / max(len(members), 1) + (0.3 * d)
-            pos[n["url"]] = (0.0, 0.0) if d == 0 else (r * math.cos(a), r * math.sin(a))
-    fig, ax = plt.subplots(figsize=(6.4, 5.0))
-    for ring in range(1, max_ring + 1):
-        ax.add_patch(plt.Circle((0, 0), ring, fill=False, color=GRID, lw=0.7, ls=(0, (2, 2))))
+            a = 2 * math.pi * i / len(members) + 0.35 * radius[d]
+            pos[n["url"]] = (radius[d] * math.cos(a), radius[d] * math.sin(a))
+    fig, ax = plt.subplots(figsize=(6.4, 5.2))
+    for d in order:
+        orphan = d == -1
+        ax.add_patch(plt.Circle((0, 0), radius[d], fill=False, color=STATUS["critical"] if orphan else GRID, lw=0.7, ls=(0, (2, 2)), alpha=0.6 if orphan else 1))
     if -1 in rings:
-        ax.add_patch(plt.Circle((0, 0), max_ring + 1.3, fill=False, color=STATUS["critical"], lw=0.7, ls=(0, (2, 2)), alpha=0.5))
-        ax.text(0, -(max_ring + 1.3) - 0.35, "not linked from crawled pages", ha="center", fontsize=7, color=STATUS["critical"])
+        ax.text(0, -1.09, "not linked from crawled pages", ha="center", fontsize=7, color=STATUS["critical"])
+    alpha = max(0.08, min(0.6, 25 / max(len(edges), 1)))
     for a, b in edges:
         if a in pos and b in pos and a != b:
-            ax.plot([pos[a][0], pos[b][0]], [pos[a][1], pos[b][1]], color=GRID, lw=0.5, zorder=1)
+            ax.plot([pos[a][0], pos[b][0]], [pos[a][1], pos[b][1]], color=INK2, lw=0.4, alpha=alpha, zorder=1)
+    size_scale = 1.0 if len(nodes) <= 25 else 0.55
     for n in nodes:
-        x, y = pos[n["url"]]
-        size = 40 + 260 * (n["importance"] if n["importance"] is not None else 0.3)
-        is_home = n["url"] == home
-        c = INK if is_home else colour.get(n["type"], OTHER)
-        ax.scatter(x, y, s=size * (1.3 if is_home else 1), color=c, edgecolor=SURFACE, linewidth=1.5, zorder=3)
-    ax.annotate("Homepage", pos[home] if home in pos else (0, 0), xytext=(0, -14), textcoords="offset points", ha="center", fontsize=7, fontweight="bold", color=INK, zorder=4)
-    # Label the most important pages, skipping any label that would land on top of another.
-    placed: list[tuple[float, float]] = []
-    min_gap = 0.42 * (max_ring + 1)
-    for n in sorted((n for n in nodes if n["url"] != home), key=lambda n: -(n["importance"] or 0)):
-        x, y = pos[n["url"]]
-        if any(abs(x - px) < min_gap and abs(y - py) < min_gap * 0.45 for px, py in placed) or len(placed) >= 8:
+        if n["url"] not in pos:
             continue
-        placed.append((x, y))
+        x, y = pos[n["url"]]
+        is_home = n["url"] == home
+        size = (40 + 240 * (n["importance"] if n["importance"] is not None else 0.3)) * size_scale
+        ax.scatter(x, y, s=size * (1.6 if is_home else 1), color=INK if is_home else colour.get(n["type"], OTHER), edgecolor=SURFACE, linewidth=1.2, zorder=3)
+    ax.set_xlim(-1.25, 1.25)
+    ax.set_ylim(-1.18, 1.18)
+    ax.set_aspect("equal")
+    ax.axis("off")
+    ax.annotate("Homepage", (0, 0), xytext=(0, -13), textcoords="offset points", ha="center", fontsize=7, fontweight="bold", color=INK, zorder=6,
+                bbox={"facecolor": SURFACE, "edgecolor": "none", "pad": 1, "alpha": 0.85})
+    ranked = sorted((n for n in nodes if n["url"] != home and n["url"] in pos), key=lambda n: -(n["importance"] or 0))
+    names = []
+    for n in ranked:
         name = n["label"].rstrip("/").rsplit("/", 1)[-1] or n["label"]
-        ax.annotate(name[:18] + ("…" if len(name) > 18 else ""), (x, y), xytext=(0, 8), textcoords="offset points", ha="center", fontsize=6.8, color=INK, zorder=4)
+        names.append((*pos[n["url"]], name[:20] + ("…" if len(name) > 20 else "")))
+    place_labels(ax, fig, names, fontsize=6.6, limit=8)
     ax.scatter([], [], s=45, color=INK, label="homepage")
     for t in top:
         ax.scatter([], [], s=45, color=colour[t], label=t.replace("_", " "))
-    if any(n["type"] not in colour for n in nodes):
+    if any(n["type"] not in colour for n in nodes if n["url"] != home):
         ax.scatter([], [], s=45, color=OTHER, label="other types")
-    ax.legend(loc="upper left", bbox_to_anchor=(1.0, 1.0), frameon=False, fontsize=7.5)
-    lim = max_ring + 1.9
-    ax.set_xlim(-lim, lim)
-    ax.set_ylim(-lim, lim)
-    ax.set_aspect("equal")
-    ax.axis("off")
+    ax.legend(loc="upper left", bbox_to_anchor=(0.98, 1.0), frameon=False, fontsize=7.5)
     cs.save("site_map", fig)
 
 
@@ -404,10 +434,11 @@ def invest_matrix(cs: ChartSet, points: list[dict]) -> None:
     for p in points:
         weak_core = p["importance"] >= 0.5 and p["quality"] < 0.5
         ax.scatter(p["quality"], p["importance"], s=80, color=RAMP[5] if weak_core else MAGENTA if p["importance"] >= 0.5 else OTHER, edgecolor=SURFACE, linewidth=1.5, zorder=3)
-    for p in sorted(points, key=lambda p: -p["importance"])[:8]:
-        ax.annotate(p["label"][:28], (p["quality"], p["importance"]), xytext=(5, 3), textcoords="offset points", fontsize=6.8)
     ax.set_xlim(0, 1)
     ax.set_ylim(0, 1.1)
+    # Label the weakest important pages first: they are the point of this chart.
+    order = sorted(points, key=lambda p: (not (p["importance"] >= 0.5 and p["quality"] < 0.5), -p["importance"] + p["quality"]))
+    place_labels(ax, fig, [(p["quality"], p["importance"], p["label"][:28]) for p in order], limit=8)
     ax.set_xlabel("judged quality (mean of helpfulness, specificity, trust)")
     ax.set_ylabel("Jev importance")
     _clean(ax)
@@ -458,7 +489,7 @@ def opportunities(cs: ChartSet, rows: list[dict]) -> None:
     rows = [r for r in rows if r.get("volume")]
     if not rows:
         return
-    fig, ax = plt.subplots(figsize=(6.4, 3.4))
+    fig, ax = plt.subplots(figsize=(6.4, 2.7))
     ax.axvspan(0, 30, color="#f7e3f1", zorder=0)
     ax.text(1, 1.02, "EASIER TO WIN", transform=ax.get_xaxis_transform(), fontsize=7.5, fontweight="bold", color=RAMP[4])
     unknown = False
@@ -470,13 +501,7 @@ def opportunities(cs: ChartSet, rows: list[dict]) -> None:
             ax.scatter(50, r["volume"], s=size, facecolor="none", edgecolor=c, linewidth=1.5, zorder=3)
         else:
             ax.scatter(r["difficulty"], r["volume"], s=size, color=c, edgecolor=SURFACE, linewidth=1.5, zorder=3, alpha=0.9)
-    placed: list[tuple[float, float]] = []
-    for r in sorted(rows, key=lambda r: -r["volume"] * (1 - min(r.get("difficulty") or 50, 100) / 100))[:9]:
-        x, y = (r.get("difficulty") if r.get("difficulty") is not None else 50), math.log10(r["volume"])
-        if any(abs(x - px) < 16 and abs(y - py) < 0.2 for px, py in placed):
-            continue
-        placed.append((x, y))
-        ax.annotate(r["keyword"][:26], (x, r["volume"]), xytext=(5, 3), textcoords="offset points", fontsize=6.8)
+    top = sorted(rows, key=lambda r: -r["volume"] * (1 - min(r.get("difficulty") if r.get("difficulty") is not None else 50, 100) / 100))
     if any(not r.get("new_page") for r in rows):
         ax.scatter([], [], s=50, color=MAGENTA, label="an existing page fits")
     if any(r.get("new_page") for r in rows):
@@ -487,6 +512,7 @@ def opportunities(cs: ChartSet, rows: list[dict]) -> None:
     ax.set_yscale("log")
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}"))
     ax.set_xlim(-2, 102)
+    place_labels(ax, fig, [((r.get("difficulty") if r.get("difficulty") is not None else 50), r["volume"], r["keyword"][:26]) for r in top], limit=9)
     ax.set_xlabel("keyword difficulty (DataForSEO, 0 to 100)")
     ax.set_ylabel("monthly searches (log)")
     _clean(ax)

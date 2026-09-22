@@ -110,14 +110,14 @@ def jev_findings(crawl: dict, judged: dict) -> list[dict]:
         ("jev_h1_fit", "h1_fit", lambda a: a["value"] < 0.5, None),
         ("jev_answer_first", "answer_first", lambda a: a["value"] < 0.5, None),
         ("jev_citable", "citable", lambda a: a["value"] < LOW, None),
-        ("jev_rewrite", "action", lambda a: a["value"] in ("rewrite", "consolidate", "noindex_or_remove"), None),
+        ("jev_rewrite", "action", lambda a: a["value"] in ("rewrite", "merge_or_remove"), None),
     ]
     words = {p["url"]: p.get("word_count", 0) for p in crawl["pages"] if p.get("kind") == "page"}
     for rule_id, key, test, only in specs:
         urls, review, vals = collect(key, test, only)
         if key == "action":
             # Code checks Jev against the evidence: a removal verdict on a substantial page is not acted on.
-            keep = [i for i, u in enumerate(urls) if not (pages[u]["action"]["value"] == "noindex_or_remove" and words.get(u, 0) >= 600)]
+            keep = [i for i, u in enumerate(urls) if not (pages[u]["action"]["value"] in ("merge_or_remove", "noindex_or_remove") and words.get(u, 0) >= 600)]
             urls, vals = [urls[i] for i in keep], [vals[i] for i in keep]
             review = sum(1 for u in urls if pages[u]["action"]["band"] == "review")
         if urls:
@@ -166,7 +166,7 @@ def dfs_findings(crawl: dict, judged: dict, dfs: dict | None) -> list[dict]:
 
     def fmt(k):
         hard = k.get("difficulty") is not None and k["difficulty"] > REACHABLE_KD
-        return ("longer term: " if hard else "difficulty unknown: " if k.get("difficulty") is None else "") + f"{k['keyword']}" + (f" (+{k['variants']} rewordings)" if k.get("variants") else "") + f" ({k.get('volume') or 0}/mo" + (f", position {k['position']}" if k.get("position") else "") + (f", difficulty {k['difficulty']}" if k.get("difficulty") is not None else "") + ")"
+        return ("longer term: " if hard else "difficulty unknown: " if k.get("difficulty") is None else "") + f"{k['keyword']}" + (f" (+{k['variants']} rewordings)" if k.get("variants") else "") + f" ({k.get('volume') or 0:,}/mo" + (f", position {k['position']}" if k.get("position") else "") + (f", difficulty {k['difficulty']}" if k.get("difficulty") is not None else "") + ")"
 
     def other_brand(kw):
         a = kj.get(kw) or {}
@@ -205,15 +205,15 @@ def dfs_findings(crawl: dict, judged: dict, dfs: dict | None) -> list[dict]:
             rows.sort(key=opportunity, reverse=True)
             urls = sorted({k["page_url"] for k in rows}) if rule == "dfs_existing_page" else [home]
             review = sum(1 for k in rows if kj[k["keyword"]]["relevance"]["band"] == "review" or kj[k["keyword"]]["page"]["band"] == "review")
-            out.append(dfs_finding(rule, urls, len(rows), "; ".join(fmt(k) + (f" -> {k['page_url']}" if k.get("page_url") else "") for k in rows[:6]), {"keywords": rows}, review))
+            out.append(dfs_finding(rule, urls, len(rows), "; ".join(fmt(k) + (f" -> {urlparse(k['page_url']).path or '/'}" if k.get("page_url") else "") for k in rows[:6]), {"keywords": rows}, review))
     rd = {r["domain"]: r["referring_domains"] for r in dfs.get("referring_domains") or [] if r.get("referring_domains") is not None}
     own = rd.get(crawl["domain"])
     rivals = sorted(v for d, v in rd.items() if d != crawl["domain"])
     if own is not None and len(rivals) >= 2:
         median = rivals[len(rivals) // 2]
         if own < median / 4:
-            others = ", ".join(f"{d} {v}" for d, v in sorted(rd.items(), key=lambda kv: -kv[1]) if d != crawl["domain"])
-            out.append(dfs_finding("dfs_backlink_gap", [home], 1, f"{own} referring domains against a median of {median} across {len(rivals)} domains ranking for the same keywords ({others})", {"referring_domains": rd}, heuristic=True))
+            others = ", ".join(f"{d} {v:,}" for d, v in sorted(rd.items(), key=lambda kv: -kv[1]) if d != crawl["domain"])
+            out.append(dfs_finding("dfs_backlink_gap", [home], 1, f"{own:,} referring domains against a median of {median:,} across {len(rivals)} domains ranking for the same keywords ({others})", {"referring_domains": rd}, heuristic=True))
     bl = dfs.get("backlinks") or {}
     if (bl.get("broken_backlinks") or 0) > 0:
         out.append(dfs_finding("dfs_broken_backlinks", [home], bl["broken_backlinks"], f"{bl['broken_backlinks']} backlinks point at {bl.get('broken_pages') or 'some'} broken pages"))

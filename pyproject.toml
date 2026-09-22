@@ -2,6 +2,10 @@
 name = "jev-seo"
 version = "0.1.0"
 description = "Live website SEO audit with typed Jev judgments and PDF, XLSX and Markdown reports"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Agrici Daniel" }]
+keywords = ["seo", "seo-audit", "jev", "typesafe", "claude-code", "dataforseo", "pagespeed"]
 requires-python = ">=3.10"
 dependencies = ["requests", "beautifulsoup4", "lxml", "matplotlib", "jinja2", "weasyprint", "openpyxl"]
 
@@ -16,3 +20,7 @@ include = ["jevseo*"]
 
 [tool.setuptools.package-data]
 jevseo = ["templates/*"]
+
+[project.urls]
+Homepage = "https://github.com/AgriciDaniel/jev-seo"
+Issues = "https://github.com/AgriciDaniel/jev-seo/issues"

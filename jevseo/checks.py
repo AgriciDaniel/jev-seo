@@ -27,6 +27,11 @@ SRC = {
     "images": G + "appearance/google-images",
     "sd": G + "appearance/structured-data/intro-structured-data",
     "sd_general": G + "appearance/structured-data/sd-policies",
+    "sd_product": G + "appearance/structured-data/product-snippet",
+    "sd_software": G + "appearance/structured-data/software-app",
+    "sd_breadcrumb": G + "appearance/structured-data/breadcrumb",
+    "sd_local": G + "appearance/structured-data/local-business",
+    "sd_faq": G + "appearance/structured-data/faqpage",
     "hreflang": G + "specialty/international/localized-versions",
     "mobile": G + "crawling-indexing/mobile/mobile-sites-mobile-first-indexing",
     "helpful": G + "fundamentals/creating-helpful-content",
@@ -104,6 +109,8 @@ RULES = {
     "images_dimensions": ("performance", "low", "Images without width and height", "Set width and height so layout does not shift while images load.", "cls", 1, False),
     "no_structured_data": ("structured", "medium", "No structured data on the homepage", "Add JSON-LD describing the organisation and website (for example Organization and WebSite).", "sd", 2, False),
     "jsonld_errors": ("structured", "high", "Structured data that fails to parse", "Fix the JSON-LD syntax so search engines can read it.", "sd_general", 1, False),
+    "schema_required": ("structured", "low", "Structured data missing properties Google requires for rich results", "Add the missing required properties listed in the evidence, or remove markup that cannot be completed truthfully.", "sd", 1, False),
+    "faq_rich_result_limited": ("structured", "info", "FAQPage markup: rich results only for government and health sites", "Keep the markup if it helps other consumers, but do not expect FAQ rich results unless the site is a well-known government or health authority.", "sd_faq", 1, False),
     "og_missing": ("structured", "low", "Open Graph title or image missing", "Add og:title, og:description and og:image for link previews.", "og", 1, False),
     "hreflang_issues": ("structured", "medium", "hreflang annotations incomplete", "Each language version needs a self-reference and return links; add x-default where useful.", "hreflang", 2, False),
     "ai_bots_blocked": ("ai", "info", "AI crawlers blocked in robots.txt", "Decide deliberately. Blocking Google-Extended does not affect Google Search; blocking search-oriented AI bots can remove the site from those answer engines.", "crawlers_google", 1, False),
@@ -314,6 +321,34 @@ def run_checks(crawl: dict) -> list[dict]:
     errs = [p for p in pages if p.get("schema_errors")]
     if errs:
         out.append(finding("jsonld_errors", [p["url"] for p in errs], "; ".join(e for p in errs[:3] for e in p["schema_errors"][:1])))
+    # Required properties, from Google's structured data docs (retrieved 2026-09-22). Only rich-result
+    # types with documented required properties are checked; recommended properties are not required.
+    problems = []
+    for p in pages:
+        for n in p.get("schema_nodes") or []:
+            keys, ts = set(n["keys"]), set(n["types"])
+            path = urlparse(p["url"]).path or "/"
+            if "Product" in ts:
+                miss = [k for k in ("name",) if k not in keys] + ([] if keys & {"offers", "review", "aggregateRating"} else ["offers, review or aggregateRating"])
+                if miss:
+                    problems.append((p["url"], f"Product on {path} lacks {', '.join(miss)}"))
+            if "SoftwareApplication" in ts:
+                miss = [k for k in ("name",) if k not in keys] + ([] if n["offers_price"] else ["offers.price"]) + ([] if keys & {"review", "aggregateRating"} else ["aggregateRating or review"])
+                if miss:
+                    problems.append((p["url"], f"SoftwareApplication on {path} lacks {', '.join(miss)}"))
+            if "BreadcrumbList" in ts and not n["list_items_ok"]:
+                problems.append((p["url"], f"BreadcrumbList on {path} has items without position or name"))
+            if "LocalBusiness" in ts:
+                miss = [k for k in ("name", "address") if k not in keys]
+                if miss:
+                    problems.append((p["url"], f"LocalBusiness on {path} lacks {', '.join(miss)}"))
+    if problems:
+        uniq = list(dict.fromkeys(text for _, text in problems))
+        urls = sorted({u for u, _ in problems})
+        out.append(finding("schema_required", urls, "; ".join(uniq[:6]) + (f"; and {len(uniq) - 6} more" if len(uniq) > 6 else ""), {"problems": uniq}))
+    faq = [p["url"] for p in pages if "FAQPage" in (p.get("schema_types") or [])]
+    if faq:
+        out.append(finding("faq_rich_result_limited", faq, f"FAQPage markup on {len(faq)} page{'s' if len(faq) != 1 else ''}"))
     og = [p["url"] for p in ix if not (p.get("og") or {}).get("title") or not (p.get("og") or {}).get("image")]
     if og:
         out.append(finding("og_missing", og, f"{len(og)} pages lack og:title or og:image"))

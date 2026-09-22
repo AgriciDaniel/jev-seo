@@ -157,3 +157,8 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .bot.no { background: #f8dcdc; color: #8f1f1f; }
 .bot.na { background: var(--panel); color: var(--ink2); }
 .tag-dfs { background: #e3ecf6; color: #1d4f8a; }
+.flow { margin-top: 9mm; padding-top: 5mm; border-top: 1px solid var(--line); }
+.flow > .kicker, .flow > h2 { page-break-after: avoid; }
+h2, h3 { page-break-after: avoid; }
+.sources { column-count: 2; column-gap: 6mm; font-family: "DejaVu Sans Mono", monospace; font-size: 6.3pt; line-height: 1.5; }
+.sources a { display: block; word-break: break-all; }

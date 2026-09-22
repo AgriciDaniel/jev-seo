@@ -61,3 +61,30 @@ second judge, not accuracy: there is no human-labelled answer key yet.
 - Not yet established: accuracy against human labels, and threshold
   tuning. Label about 100 items per judgment family before treating Jev
   findings as more than prioritised signals for review.
+
+## Question wording A/B test and decisiveness measure (2026-09-22)
+
+Same 30 pages and 40 keywords, current wording (A) against sharper wording
+(B), cost 0.0088 USD. Adopted where B clearly won: page type agreement
+20/30 to 27/30; page action decisive 1/30 to 27/30 with the same removal
+agreement; other-brand decisive 22/40 to 29/40 and agreement 28/40 to
+30/40. Score decisiveness now uses the probability on one side of the
+midpoint: helpfulness and specificity became decisive on 29/30 pages with
+28/29 agreement; keyword relevance decisive on 30/40 with 27/30 agreement,
+while the undecided 10 agreed only 5/10. The measure separates reliable
+from unreliable answers, which is what the "to verify" flag is for.
+
+## Answer-first and next-step questions (2026-09-22)
+
+The page text starts with breadcrumbs and navigation, so "the first
+sentences" were never the real opening. Code now passes `page.opening` (the
+text after the H1) and `page.calls_to_action`. Tested on the same 30 pages
+against blind labels, cost about 0.012 USD:
+
+| Question | Before: decisive / agreement | After: decisive / agreement | Correct when decisive |
+|---|---|---|---|
+| Opens with the point | 6/30 / 15/30 | 23/30 / 28/30 | 23/23 |
+| Clear next step | 9/30 / 25/30 | 16/30 / 26/30 | 16/16 |
+
+On claude-seo.md, all changes together raised decisive page answers from 47%
+to 80% (before the two questions above) and keyword answers from 55% to 73%.

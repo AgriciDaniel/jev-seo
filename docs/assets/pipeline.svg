@@ -16,7 +16,7 @@
     <!-- step 2 -->
     <rect x="272" y="140" width="190" height="218" rx="16" fill="#f4f3ef"/>
     <circle cx="302" cy="172" r="14" fill="#0b0b0b"/><text x="302" y="177" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">2</text>
-    <text x="292" y="222" font-size="20" font-weight="750" fill="#0b0b0b">50 rules</text>
+    <text x="292" y="222" font-size="20" font-weight="750" fill="#0b0b0b">52 rules</text>
     <text x="292" y="250" fill="#52514e">status, canonicals,</text>
     <text x="292" y="272" fill="#52514e">titles, schema, links,</text>
     <text x="292" y="294" fill="#52514e">each with a source</text>
@@ -49,5 +49,5 @@
     <text x="964" y="294" fill="#52514e">PDF · XLSX · MD</text>
     <text x="964" y="334" font-size="13" font-weight="700" fill="#0b7a52">LOCAL</text>
   </g>
-  <text x="48" y="396" font-size="13" fill="#898781">Default mode: no SEO data subscription (15 pages, 44 s, 0.0019 USD of Jev). Optional --full adds DataForSEO rankings, keywords and backlinks, pay per call (about 0.30 USD a site).</text>
+  <text x="48" y="396" font-size="13" fill="#898781">Default mode: no SEO data subscription (15 pages, 51 s, 0.0020 USD of Jev). Optional --full adds DataForSEO rankings, keywords and backlinks, pay per call (about 0.30 USD a site).</text>
 </svg>

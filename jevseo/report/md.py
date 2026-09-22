@@ -13,9 +13,13 @@ def label(v) -> str:
     return cell((v or "").replace("_", " "))
 
 
+WIDTH = {"gauge": 220, "severity": 320, "page_types": 360, "intents": 360, "positions": 380, "referring_domains": 380}
+
+
 def img(vm: dict, name: str, alt: str) -> str:
+    """HTML image tags so GitHub and Obsidian show charts at a readable size."""
     p = vm["charts"].png.get(name)
-    return f"![{alt}](charts/{p.name})\n" if p else ""
+    return f'<img src="charts/{p.name}" alt="{alt}" width="{WIDTH.get(name, 640)}">\n' if p else ""
 
 
 def pie(title: str, counts: dict) -> str:
@@ -40,6 +44,9 @@ def write_md(vm: dict, path: Path) -> Path:
     add("")
     add(img(vm, "categories", "Score by area"))
 
+    toc = ["Executive summary", "How this audit was made", "Priority actions"] + (["Search visibility (DataForSEO)"] if vm.get("dfs") else []) + ["What the crawl found"] + (["How Jev reads the site"] if vm["jev_available"] else []) + ["Findings by area", "Robots access", "Page inventory", "Method and limits"]
+    anchor = lambda h: "#" + "".join(c for c in h.lower().replace(" ", "-") if c.isalnum() or c == "-")  # noqa: E731
+    add("**Contents:** " + " · ".join(f"[{h}]({anchor(h)})" for h in toc) + "\n")
     add("## Executive summary\n")
     for para in n["executive_summary"]:
         add(para + "\n")

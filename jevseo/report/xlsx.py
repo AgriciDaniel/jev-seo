@@ -13,6 +13,8 @@ from openpyxl.worksheet.datavalidation import DataValidation
 
 from jevseo.report import JEV_COLUMNS
 
+JEV_LABELS = {"helpfulness": "Helpfulness", "specificity": "Specificity", "trust": "Trust", "citable": "Citability", "answer_first": "Answer first",
+              "title_fit": "Title fit", "meta_fit": "Meta fit", "clear_next_step": "Next step"}
 INK = "0B0B0B"
 JEV = "D45BB6"
 SOFT = "FBEAF5"
@@ -70,32 +72,35 @@ def write_xlsx(vm: dict, path: Path) -> Path:
     ws["A5"], ws["B5"] = "Grade", s["grade"]
     ws["A6"], ws["B6"] = "Jev cost (USD)", vm["ledger"].get("cost_usd") or 0
     ws["B6"].number_format = "$0.0000"
-    for r in (4, 5, 6):
+    ws["A7"], ws["B7"] = "DataForSEO cost (USD)", (vm["dfs"]["ledger"]["cost_usd"] if vm.get("dfs") else "not used")
+    if vm.get("dfs"):
+        ws["B7"].number_format = "$0.0000"
+    for r in (4, 5, 6, 7):
         ws[f"A{r}"].font = Font(name="Inter", bold=True)
         ws[f"B{r}"].font = Font(name="Inter Display", bold=True, size=14, color="A83A8C")
-    ws["A8"] = "Area"
-    ws["B8"] = "Score"
-    ws["C8"] = "Weight"
-    ws["D8"] = "How it is scored"
+    ws["A9"] = "Area"
+    ws["B9"] = "Score"
+    ws["C9"] = "Weight"
+    ws["D9"] = "How it is scored"
     for c in "ABCD":
-        ws[f"{c}8"].font = HEAD
-        ws[f"{c}8"].fill = PatternFill("solid", fgColor=INK)
-    r = 9
+        ws[f"{c}9"].font = HEAD
+        ws[f"{c}9"].fill = PatternFill("solid", fgColor=INK)
+    r = 10
     for cat, name in s["category_names"].items():
         ws.cell(r, 1, name).font = BODY
         ws.cell(r, 2, s["categories"][cat]).font = BODY
         ws.cell(r, 3, s["weights"][cat]).font = BODY
         ws.cell(r, 4, s["notes"][cat]).font = BODY
         r += 1
-    ws.conditional_formatting.add(f"B9:B{r - 1}", ColorScaleRule(start_type="num", start_value=0, start_color="FBEAF5", end_type="num", end_value=100, end_color="A83A8C"))
+    ws.conditional_formatting.add(f"B10:B{r - 1}", ColorScaleRule(start_type="num", start_value=0, start_color="FBEAF5", end_type="num", end_value=100, end_color="A83A8C"))
     chart = BarChart()
     chart.type = "bar"
     chart.title = "Score by area"
     chart.style = 10
     chart.y_axis.scaling.min = 0
     chart.y_axis.scaling.max = 100
-    chart.add_data(Reference(ws, min_col=2, min_row=8, max_row=r - 1), titles_from_data=True)
-    chart.set_categories(Reference(ws, min_col=1, min_row=9, max_row=r - 1))
+    chart.add_data(Reference(ws, min_col=2, min_row=9, max_row=r - 1), titles_from_data=True)
+    chart.set_categories(Reference(ws, min_col=1, min_row=10, max_row=r - 1))
     chart.series[0].graphicalProperties.solidFill = JEV
     chart.legend = None
     chart.height, chart.width = 7.5, 14
@@ -165,7 +170,7 @@ def write_xlsx(vm: dict, path: Path) -> Path:
 
     # ---------------- Pages
     wp = wb.create_sheet("Pages")
-    cols = [("URL", "url", 50), ("Status", "status", 8), ("Depth", "depth", 7), ("Title", "title", 40), ("Title chars", "title_len", 8), ("Meta chars", "meta_len", 8), ("H1", "h1", 34), ("H1 count", "h1_count", 7), ("Words", "words", 8), ("Inlinks", "inlinks", 8), ("Outlinks", "outlinks", 8), ("Images", "images", 8), ("No alt", "missing_alt", 7), ("Indexable", "indexable", 9), ("In sitemap", "in_sitemap", 9), ("Canonical", "canonical", 40), ("Schema", "schema", 26), ("TTFB ms", "ttfb", 8), ("HTML KB", "kb", 8), ("Rendered", "rendered", 9), ("Type (Jev)", "page_type", 18), ("Intent (Jev)", "intent", 14), ("Importance (Jev)", "importance", 10), ("Action (Jev)", "action", 14)] + [(f"{label} (Jev)", key, 10) for key, label in JEV_COLUMNS]
+    cols = [("URL", "url", 50), ("Status", "status", 8), ("Depth", "depth", 7), ("Title", "title", 40), ("Title chars", "title_len", 8), ("Meta chars", "meta_len", 8), ("H1", "h1", 34), ("H1 count", "h1_count", 7), ("Words", "words", 8), ("Inlinks", "inlinks", 8), ("Outlinks", "outlinks", 8), ("Images", "images", 8), ("No alt", "missing_alt", 7), ("Indexable", "indexable", 9), ("In sitemap", "in_sitemap", 9), ("Canonical", "canonical", 40), ("Schema", "schema", 26), ("TTFB ms", "ttfb", 8), ("HTML KB", "kb", 8), ("Rendered", "rendered", 9), ("Type (Jev)", "page_type", 18), ("Intent (Jev)", "intent", 14), ("Importance (Jev)", "importance", 10), ("Action (Jev)", "action", 14)] + [(f"{JEV_LABELS.get(key, label.title())} (Jev)", key, 12) for key, label in JEV_COLUMNS]
     prow = []
     for p in vm["pages"]:
         row = []
@@ -197,19 +202,20 @@ def write_xlsx(vm: dict, path: Path) -> Path:
         for key, a in (ans or {}).items():
             probs = a.get("probabilities") or {}
             top = ", ".join(f"{k}: {v:.2f}" for k, v in sorted(probs.items(), key=lambda kv: -kv[1])[:3]) if probs else ""
-            jrows.append([url, key, a["type"], a["value"] if not isinstance(a["value"], float) else round(a["value"], 3), a.get("confidence"), a["band"], top])
+            jrows.append([url, key, a["type"], a["value"] if not isinstance(a["value"], float) else round(a["value"], 3), a.get("confidence"), a.get("side_probability"), a["band"], top])
     if d["jev"].get("site"):
         for key, a in d["jev"]["site"].items():
             probs = a.get("probabilities") or {}
             top = ", ".join(f"{k}: {v:.2f}" for k, v in sorted(probs.items(), key=lambda kv: -kv[1])[:3]) if probs else ""
-            jrows.append(["(site)", key, a["type"], a["value"] if not isinstance(a["value"], float) else round(a["value"], 3), a.get("confidence"), a["band"], top])
+            jrows.append(["(site)", key, a["type"], a["value"] if not isinstance(a["value"], float) else round(a["value"], 3), a.get("confidence"), a.get("side_probability"), a["band"], top])
     for p in d["jev"].get("pairs", []):
         if p.get("judgment"):
-            jrows.append([f"{p['a']} vs {p['b']}", "compete", "noul", round(p["judgment"]["value"], 3), None, p["judgment"]["band"], f"title overlap {p['title_overlap']}"])
-    table(wj, ["Page", "Question", "Primitive", "Answer (0 to 1 or option)", "Confidence", "Band", "Top probabilities"], jrows, [50, 18, 9, 18, 11, 10, 50])
+            jrows.append([f"{p['a']} vs {p['b']}", "compete", "noul", round(p["judgment"]["value"], 3), None, None, p["judgment"]["band"], f"title overlap {p['title_overlap']}"])
+    table(wj, ["Page", "Question", "Primitive", "Answer (0 to 1 or option)", "Confidence", "Side probability (Score)", "Band", "Top probabilities"], jrows, [50, 18, 9, 18, 11, 12, 10, 50])
     for i in range(2, len(jrows) + 2):
         wj[f"E{i}"].number_format = "0.00"
-    wj.conditional_formatting.add(f"F2:F{len(jrows) + 1}", CellIsRule(operator="equal", formula=['"review"'], fill=PatternFill("solid", fgColor="FDF0D0")))
+        wj[f"F{i}"].number_format = "0.00"
+    wj.conditional_formatting.add(f"G2:G{len(jrows) + 1}", CellIsRule(operator="equal", formula=['"review"'], fill=PatternFill("solid", fgColor="FDF0D0")))
 
     # ---------------- Technical
     wt = wb.create_sheet("Technical")
@@ -318,5 +324,7 @@ def write_xlsx(vm: dict, path: Path) -> Path:
 
     for sheet in wb.worksheets:
         sheet.sheet_properties.tabColor = JEV if sheet.title in ("Summary", "Actions", "Jev judgments") else "C3C2B7"
+    # Formula cells carry no stored values; ask the spreadsheet app to calculate on open.
+    wb.calculation.fullCalcOnLoad = True
     wb.save(path)
     return path

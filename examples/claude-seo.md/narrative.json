@@ -1,0 +1,39 @@
+{
+  "executive_summary": [
+    "claude-seo.md scores 93 out of 100. The technical areas score 98 to 100: no HTTP errors or broken internal links among the 60 crawled pages, a missing URL returns a real 404, and real Chrome users see good Core Web Vitals on mobile and desktop. The crawl stopped at its 60 page cap, so page counts describe a sample.",
+    "DataForSEO estimates 61 ranking keywords and about 553 monthly visits, with position 2 for 'claude seo' and position 3 for 'ai seo audit'. The site has 40 referring domains; the large platforms ranking for the same keywords, such as semrush.com and ahrefs.com, have over 100,000 each (JEV-003), so a direct comparison says little about what is achievable.",
+    "The most practical work is on keywords: 4 relevant keywords rank at positions 6 to 19 (JEV-001), and 25 relevant searches, mostly low-volume 'claude seo' terms, have an existing page that could target them (JEV-002). Rule-verified fixes are small: SoftwareApplication markup without the rating Google requires for rich results (JEV-005), a temporary 307 www redirect (JEV-006) and a broken Skool profile link (JEV-011)."
+  ],
+  "strengths": [
+    "Crawl and indexing scores 99 and security 100; Lighthouse SEO is 100 on all three measured pages.",
+    "Jev judged the homepage offer clear: value proposition 1.00, confidence 1.00.",
+    "Position 2 for 'claude seo', position 3 for 'ai seo audit' and 'claude code for seo'.",
+    "Mobile homepage Lighthouse performance 99, with LCP, INP and CLS rated good for real users.",
+    "All 10 AI crawlers checked are allowed by robots.txt."
+  ],
+  "risks": [
+    "4 relevant keywords sit at positions 6 to 19, including 'sxo', 'seo code' and 'seo skills claude' (JEV-001).",
+    "40 referring domains; the sites ranking alongside it are far larger (JEV-003).",
+    "SoftwareApplication markup on 28 pages lacks the aggregateRating or review Google requires for software rich results (JEV-005); add ratings only if real ones exist.",
+    "www.claude-seo.md redirects with a temporary 307 (JEV-006), and the Skool profile link /@daniel-agrici-3925 returns 404 (JEV-011).",
+    "Jev reads the homepage H1 'YOUR SEO TEAM IN THE TERMINAL.' as not naming the topic (JEV-007), although it rates the offer as clear; treat this as a wording suggestion."
+  ],
+  "plan": [
+    {"horizon": "This week", "items": [
+      "JEV-011 Fix the Skool profile link (hours)",
+      "JEV-006 Make the www redirect permanent (hours)",
+      "JEV-009 Replace 'LEARN MORE' links with descriptive anchor text (hours)",
+      "JEV-010 Add width and height to the 20 images on the 4 listed blog posts (hours)"
+    ]},
+    {"horizon": "This month", "items": [
+      "JEV-001 Improve the pages ranking at positions 6 to 19 for their keywords (about a day)",
+      "JEV-002 Cover the 'claude seo plugin', 'claude seo audit' and 'claude seo skill github' searches on the pages Jev mapped them to (about a day)",
+      "JEV-005 Add real ratings to SoftwareApplication markup, or accept that software rich results will not show (hours)"
+    ]},
+    {"horizon": "This quarter", "items": [
+      "JEV-003 Earn links from Claude Code and MCP directories, roundups and original data (a project)"
+    ]}
+  ],
+  "closing": "Keyword volumes, difficulty and traffic are DataForSEO estimates from a collection at 2026-09-21T23:24:36+00:00; connect Search Console for measured clicks. Items about AI Overviews and answer-first writing (JEV-004, JEV-008) are editorial heuristics: Google states no special optimization is required for its AI features.",
+  "author": "Claude, from the audit evidence"
+}

@@ -114,6 +114,18 @@ class CheckTests(unittest.TestCase):
                      "jsonld_errors", "mixed_content", "images_alt", "heading_skips", "thin_content", "generic_anchors", "ai_bots_blocked", "llms_txt_missing", "sitemap_bad_urls"]:
             self.assertIn(rule, self.found, rule)
 
+    def test_structured_data_required_properties(self):
+        crawl = crawl_fixture()
+        crawl["pages"][1]["schema_nodes"] = [
+            {"types": ["SoftwareApplication"], "keys": ["name", "offers"], "offers_price": True, "list_items": 0, "list_items_ok": False},
+            {"types": ["Product"], "keys": ["name", "offers"], "offers_price": True, "list_items": 0, "list_items_ok": False},
+        ]
+        crawl["pages"][1]["schema_types"] = ["FAQPage", "Product", "SoftwareApplication"]
+        found = {f["id"]: f for f in checks.run_checks(crawl)}
+        self.assertIn("aggregateRating or review", found["schema_required"]["evidence"])
+        self.assertNotIn("Product on", found["schema_required"]["evidence"])  # complete Product is not flagged
+        self.assertEqual(found["faq_rich_result_limited"]["severity"], "info")
+
     def test_heuristics_are_labelled(self):
         self.assertTrue(self.found["thin_content"]["heuristic"])
         self.assertFalse(self.found["http_errors"]["heuristic"])

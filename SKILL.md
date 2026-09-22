@@ -3,7 +3,7 @@ name: jev-seo
 description: >
   Full live SEO audit of any website from its homepage URL, powered by Jev
   (TypeSafe's System One model). Crawls the site live (robots.txt, sitemaps,
-  internal links, JavaScript rendering when needed), runs 50 deterministic
+  internal links, JavaScript rendering when needed), runs 52 deterministic
   checks tied to Google Search Central, measures Core Web Vitals with
   PageSpeed Insights, asks Jev batched typed questions about every page
   (page type, intent, importance, helpfulness, specificity, trust,

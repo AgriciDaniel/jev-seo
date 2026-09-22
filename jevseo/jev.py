@@ -42,14 +42,21 @@ def score(instructions: str, levels: list[str]) -> dict:
 # ---------------------------------------------------------------- per page
 PAGE_TYPES = {
     "homepage": "The site's front page introducing the whole organisation",
-    "product_or_service": "Describes one product, service or offer a visitor can buy, book or sign up for",
+    # Structured descriptions won an A/B test on blind labels (page type agreement 20/30 to 27/30).
+    "product_or_service": {
+        "what": "Presents one product, service, feature, tool or module the organisation offers, explaining what it does and why to use it",
+        "examples": "a feature page, a service page, a tool or skill overview page, a plugin page",
+    },
     "category_or_listing": "Lists or links many products, posts or items, with little content of its own",
     "article_or_guide": "An editorial article, guide, tutorial, news item or opinion piece",
     "about_or_team": "About the organisation, its story, mission or people",
     "contact_or_location": "Contact details, a form, opening hours or a physical location",
     "pricing": "Plans, prices or a quote request for the offer",
     "case_study_or_proof": "Customer stories, testimonials, results or portfolio work",
-    "support_or_docs": "Help, FAQ, documentation or account support",
+    "support_or_docs": {
+        "what": "Helps people who already use the product get something done: troubleshooting, account help, API or configuration reference, FAQ",
+        "not_for": "pages that introduce or sell a feature or tool, even when they include usage steps",
+    },
     "legal_or_policy": "Terms, privacy, cookies, imprint or other policy text",
     "other": "None of the above fits",
 }
@@ -61,12 +68,12 @@ INTENTS = {
     "local": "Someone looking for a place or provider in a specific area would land here",
     "unclear": "The page serves no clear search need or mixes several evenly",
 }
+# Three options instead of five: "keep" and "improve" were a matter of degree, so Jev split between
+# them (decisive 1/30). This set was decisive 27/30 in the A/B test.
 ACTIONS = {
-    "keep": "The page does its job; only minor polish is needed",
-    "improve": "The page is sound but specific sections, proof or clarity should be added",
-    "rewrite": "The page needs a substantially new draft to serve its purpose",
-    "consolidate": "The page overlaps other pages and would be stronger merged into one",
-    "noindex_or_remove": "The page has no search value and could be kept out of search or removed",
+    "keep_or_improve": "The page serves a real purpose; at most it needs additions, polish or updates",
+    "rewrite": "The page's purpose is valid but the current text fails it and needs a new draft",
+    "merge_or_remove": "The page duplicates another page or has no reason to exist for searchers",
 }
 
 
@@ -102,10 +109,11 @@ def page_questions(p: dict) -> dict:
                 "Distinctive first-hand detail: own data, results, processes or experience no one else could copy",
             ],
         ),
+        # Won A/B on blind labels: decisive 6/30 to 23/30, agreement 15/30 to 28/30 (23/23 when decisive).
         "answer_first": noul(
-            "Does the main text of `page` open with a direct statement of what the page offers or answers, before any preamble?",
-            "The first sentences state the answer, offer or main point plainly",
-            "It opens with preamble, slogans, or vague introduction before getting to the point",
+            "Does `page.opening`, the text right after the main heading, state plainly what the page offers or answers within its first two sentences?",
+            "The first two sentences say concretely what the reader gets: the answer, the offer, or what the page covers",
+            "The opening is a slogan, a tease, a date or author line, a story, or general preamble before the point",
         ),
         "citable": score(
             "How easily could an AI answer engine quote self-contained facts from `page`?",
@@ -125,10 +133,11 @@ def page_questions(p: dict) -> dict:
                 "Strong proof: named experts, cited sources or data, verifiable results and clear accountability",
             ],
         ),
+        # Won A/B on blind labels: decisive 9/30 to 16/30, agreement 25/30 to 26/30 (16/16 when decisive).
         "clear_next_step": noul(
-            "Does `page` give a visitor an obvious next step, such as a button, form, link or contact route that fits the page?",
-            "A clear, relevant call to action or next step is present",
-            "There is no obvious next step, or it is unrelated to the page",
+            "Does `page.text` give a visitor an obvious next step that fits this page?",
+            "The text invites a concrete action on this topic: install, sign up, contact, buy, download, try it, or read the natural next guide",
+            "The text ends without inviting any action, or only generic navigation remains",
         ),
     }
     if p.get("title"):
@@ -160,6 +169,14 @@ def page_questions(p: dict) -> dict:
     return q
 
 
+def opening(p: dict) -> str:
+    """The first words after the main heading, so breadcrumbs and navigation are not read as the opening."""
+    text = p.get("text_excerpt") or ""
+    h1 = (p.get("h1") or [""])[0]
+    i = text.find(h1) if h1 else -1
+    return (text[i + len(h1):] if i >= 0 else text).strip()[:500]
+
+
 def page_state(p: dict, site_ctx: dict) -> dict:
     text = p.get("text_excerpt") or ""
     return {
@@ -171,6 +188,8 @@ def page_state(p: dict, site_ctx: dict) -> dict:
             "h1": (p.get("h1") or [None])[0],
             "outline": p.get("outline", [])[:25],
             "word_count": p.get("word_count"),
+            "opening": opening(p),
+            "calls_to_action": p.get("calls_to_action", []),
             "text": text[:PAGE_TEXT_CHARS],
             "text_truncated": len(text) > PAGE_TEXT_CHARS,
         },
@@ -246,7 +265,7 @@ def overlap_candidates(pages: list[dict], limit: int = 40) -> list[tuple[dict, d
 
     def words(p):
         text = f"{p.get('title') or ''} {' '.join(p.get('h1') or [])}".lower()
-        text = re.sub(r"[|\-–—:·].*$", "", text) if len(text.split()) > 6 else text
+        text = re.sub(r"[|\-\u2013\u2014:\u00b7].*$", "", text) if len(text.split()) > 6 else text
         return {w for w in re.findall(r"[a-z0-9]{3,}", text) if w not in stop}
 
     ws = {p["url"]: words(p) for p in pages}
@@ -299,9 +318,9 @@ def keyword_batches(keywords: list[dict], pages: list[dict], site_ctx: dict, siz
             questions[f"{kid}_rel"] = score(f"How relevant is the search in `keywords.{kid}` to what `site` offers?", RELEVANCE)
             questions[f"{kid}_page"] = choice(f"Which page in `pages` best serves the search in `keywords.{kid}`?", options)
             questions[f"{kid}_other_brand"] = noul(
-                f"Is the person searching `keywords.{kid}` looking for a specific brand, product or website other than the one described in `site`?",
-                "They want another named product, company or site; this site would not be what they came for",
-                "They want this site, or a type of solution this site could genuinely provide",
+                f"Does `keywords.{kid}` name a specific company, product or website that is not the one in `site`, so the searcher wants that named thing?",
+                "The search contains another organisation's or product's name and the searcher is after that name (for example a competitor's brand or a platform's own product)",
+                "The search is a generic need or category, or names this site itself; any matching provider could serve it",
             )
             keys.append((kid, k["keyword"]))
         yield state, questions, keys, catalogue
@@ -398,7 +417,14 @@ def validate(question: dict, answer: dict) -> dict:
     s = float(answer["score"])
     if not 0 <= s <= top:
         raise RuntimeError("score out of range")
-    return {"type": t, "value": round(s / top, 4), "raw": s, "levels": top + 1, "probabilities": answer.get("probabilities", {}), "confidence": conf, "band": "act" if conf >= ACT else "review"}
+    probs = answer.get("probabilities", {}) or {}
+    # Decisive means the probability sits on one side of the midpoint, the side every finding
+    # threshold uses; spread between two neighbouring levels on the same side is not doubt.
+    # On blind labels, side-decisive answers agreed 90 to 97% of the time, the rest about 50%.
+    upper = sum(float(v) for k, v in probs.items() if int(k) / top >= 0.5)
+    side = max(upper, 1 - upper) if probs else conf
+    return {"type": t, "value": round(s / top, 4), "raw": s, "levels": top + 1, "probabilities": probs, "confidence": conf,
+            "side_probability": round(side, 4), "band": "act" if side >= ACT else "review"}
 
 
 def judge(crawl: dict, pages: list[dict], budget_usd: float, log=print, dfs: dict | None = None) -> dict:
@@ -419,7 +445,14 @@ def judge(crawl: dict, pages: list[dict], budget_usd: float, log=print, dfs: dic
     out["questions"] = {"site": site_q, "page_example": page_questions(home)}
 
     def one(p):
-        return p["url"], jev.ask(page_state(p, site_ctx), page_questions(p))
+        qs = page_questions(p)
+        is_home = p["url"] == home["url"]
+        if is_home:
+            qs.pop("page_type")  # code knows which page is the homepage; Jev is never asked what code can see
+        ans = jev.ask(page_state(p, site_ctx), qs)
+        if ans is not None and is_home:
+            ans["page_type"] = {"type": "choice", "value": "homepage", "probabilities": {"homepage": 1.0}, "confidence": 1.0, "band": "act", "source": "code"}
+        return p["url"], ans
 
     step = max(1, -(-len(pages) // 5))  # about five progress lines per run
     with ThreadPoolExecutor(max_workers=6) as pool:
