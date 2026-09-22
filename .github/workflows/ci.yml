@@ -5,14 +5,18 @@ on:
 jobs:
   tests:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python-version }}
       - name: System libraries for WeasyPrint
         run: sudo apt-get update && sudo apt-get install -y libpango-1.0-0 libpangoft2-1.0-0 libharfbuzz0b poppler-utils
       - name: Python dependencies
-        run: pip install requests beautifulsoup4 lxml matplotlib jinja2 weasyprint openpyxl
+        run: pip install -r requirements.txt
       - name: Offline tests
         run: python -m unittest discover -s tests -v

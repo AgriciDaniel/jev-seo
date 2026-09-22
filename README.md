@@ -2,8 +2,8 @@
 
 # ![jev-seo](docs/assets/banner.png)
 
-[![version](https://img.shields.io/badge/version-0.1.0-d45bb6?style=flat-square&labelColor=0b0b0b)](CHANGELOG.md)
-[![checks](https://img.shields.io/github/actions/workflow/status/AgriciDaniel/jev-seo/ci.yml?branch=main&label=checks&style=flat-square&labelColor=0b0b0b)](https://github.com/AgriciDaniel/jev-seo/actions/workflows/ci.yml)
+[![version](https://img.shields.io/badge/version-0.1.1-d45bb6?style=flat-square&labelColor=0b0b0b)](CHANGELOG.md)
+[![checks](https://github.com/AgriciDaniel/jev-seo/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/AgriciDaniel/jev-seo/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-666666?style=flat-square&labelColor=0b0b0b)](LICENSE)
 [![python](https://img.shields.io/badge/python-3.10%2B-666666?style=flat-square&labelColor=0b0b0b)](pyproject.toml)
 [![jev](https://img.shields.io/badge/judged%20by-jev--1.13.0-d45bb6?style=flat-square&labelColor=0b0b0b)](https://docs.typesafe.ai/primitives)
@@ -60,15 +60,19 @@ A full audit of [claude-seo.md](https://claude-seo.md), run with `--full` on 202
 
 ## Try it
 
-Python 3.10+:
+Python 3.10+. WeasyPrint needs the Pango text library: on Debian or Ubuntu `sudo apt install libpango-1.0-0 libpangoft2-1.0-0`, on macOS `brew install pango`, on Fedora it is usually present ([WeasyPrint install notes](https://doc.courtbouillon.org/weasyprint/stable/first_steps.html)).
 
 ```sh
 git clone https://github.com/AgriciDaniel/jev-seo.git
 cd jev-seo
-pip install requests beautifulsoup4 lxml matplotlib jinja2 weasyprint openpyxl
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env                           # add TYPESAFE_API_KEY (optional keys are listed inside)
 bin/jevseo doctor                              # dependencies and keys, never prints values
 bin/jevseo run https://example.com             # audit and render with an automatic summary
 ```
+
+Optional: `pip install playwright && playwright install chromium` renders pages whose content only appears after JavaScript runs; without it those pages are audited from their raw HTML. `pdftoppm` (poppler) is only used by the Claude Code skill to look at rendered pages.
 
 Reports land in `jev-seo-reports/<domain>-<stamp>/`. The offline tests need no keys and spend nothing:
 
@@ -98,7 +102,7 @@ bin/jevseo rescore jev-seo-reports/<dir>                        # rebuild findin
 | Page, site and keyword judgments | TypeSafe Jev API | 0.042 USD per million input tokens; about 0.00015 USD per page |
 | Rankings, keywords, competitors, backlinks, live SERPs, AI mentions (`--full`) | DataForSEO API | Reported per call; about 0.30 USD per site |
 
-Both paid APIs sit behind hard caps (`--jev-budget`, default 0.25 USD; `--dfs-budget`, default 1.00 USD) checked before every request, and every call is in the report's cost ledger. Keys come from the environment: `TYPESAFE_API_KEY`, optionally `PAGESPEED_API_KEY`, and for `--full` `DATAFORSEO_USERNAME` and `DATAFORSEO_PASSWORD`. Without the TypeSafe key the audit still runs and marks the Jev sections as not assessed.
+Both paid APIs sit behind hard caps (`--jev-budget`, default 0.25 USD; `--dfs-budget`, default 1.00 USD) checked before every request, and every call is in the report's cost ledger. Keys come from the environment or a `.env` file (see [.env.example](.env.example)): `TYPESAFE_API_KEY`, optionally `PAGESPEED_API_KEY` (without it PageSpeed is often rate limited), and for `--full` `DATAFORSEO_USERNAME` and `DATAFORSEO_PASSWORD`. Without the TypeSafe key the audit still runs, marks the Jev sections as not assessed, and labels the score a partial audit.
 
 ## How far to trust it
 

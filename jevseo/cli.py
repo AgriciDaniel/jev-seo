@@ -119,7 +119,7 @@ def audit(args) -> Path:
     (out / "audit.json").write_text(json.dumps(data, indent=1, default=str))
     (out / "digest.md").write_text(digest(data))
     log(f"audit written: {out / 'audit.json'}")
-    log(f"score {scores['overall']} ({scores['grade']}), {len(acts)} actions, Jev ${judged.get('ledger', {}).get('cost_usd', 0):.4f}" + (f", DataForSEO ${dfs['ledger']['cost_usd']:.4f}" if dfs else ""))
+    log(f"score {scores['overall']} ({scores['grade']}{', partial' if scores.get('partial') else ''}), {len(acts)} actions, Jev ${judged.get('ledger', {}).get('cost_usd', 0):.4f}" + (f", DataForSEO ${dfs['ledger']['cost_usd']:.4f}" if dfs else ""))
     return out
 
 
@@ -163,6 +163,7 @@ def digest(d: dict) -> str:
         f"Audited {d['run']['finished_at']}. Pages fetched: {len(d['pages'])}; HTML pages: {len(pages)}.",
         f"Overall {s['overall']} ({s['grade']}). " + ", ".join(f"{s['category_names'][c]} {v if v is not None else 'n/a'}" for c, v in s["categories"].items()),
         f"Caps: {'; '.join(s['caps']) or 'none'}. Completeness: {s['completeness']}",
+        f"PARTIAL AUDIT: {'; '.join(s['partial'])}. Say so in the narrative." if s.get("partial") else "Full assessment: Jev and PageSpeed both available.",
     ]
     if j.get("site"):
         site = j["site"]

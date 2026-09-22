@@ -188,7 +188,7 @@ def view_model(d: dict, folder: Path) -> dict:
 
     cs = charts.ChartSet(folder / "charts")
     s = d["scores"]
-    charts.gauge(cs, s["overall"], s["grade"])
+    charts.gauge(cs, s["overall"], s["grade"], bool(s.get("partial")))
     charts.category_bars(cs, s, s["category_names"])
     sev = Counter(a["severity"] for a in acts)
     charts.donut(cs, "severity", [(k, sev.get(k, 0)) for k in ("critical", "high", "medium", "low")], [charts.STATUS[k] for k in ("critical", "high", "medium", "low") if sev.get(k)], "actions")

@@ -429,6 +429,27 @@ class RenderTests(unittest.TestCase):
 
         self.assertTrue({"Rankings", "Opportunities", "Competitors", "SERPs", "AI mentions"} <= set(load_workbook(out["xlsx"]).sheetnames))
 
+    def test_no_jev_audit_renders_and_is_marked_partial(self):
+        from jevseo.cli import digest
+        from jevseo.report import build
+
+        crawl = crawl_fixture()
+        judged = {"available": False, "site": None, "pages": {}, "pairs": [], "ledger": {}, "questions": {}}
+        findings = checks.run_checks(crawl)
+        data = {"schema_version": "1.0", "tool": {"name": "jev-seo", "version": "test"},
+                "run": {"started_at": "2026-09-21T10:00:00+00:00", "finished_at": "2026-09-21T10:05:00+00:00", "timings_s": {}, "options": {}},
+                "site": {k: v for k, v in crawl.items() if k != "pages"}, "pages": crawl["pages"], "findings": findings,
+                "passed_rules": checks.passed_rules(findings), "jev": judged, "performance": None, "dataforseo": None,
+                "scores": score.score(crawl, findings, judged, None), "actions": score.actions(findings, judged, 4)}
+        self.assertTrue(data["scores"]["partial"])
+        tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, tmp, True)
+        (tmp / "audit.json").write_text(json.dumps(data))
+        self.assertIn("PARTIAL AUDIT", digest(data))
+        out = build(tmp, ["pdf", "xlsx", "md"], log=lambda *_: None)
+        self.assertIn("Partial audit", out["md"].read_text())
+        self.assertEqual(out["pdf"].read_bytes()[:5], b"%PDF-")
+
     def test_narrative_rejects_unknown_ids(self):
         with self.assertRaises(SystemExit):
             self.build({"executive_summary": ["See JEV-999."], "strengths": [], "risks": [], "plan": []})

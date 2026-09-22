@@ -310,7 +310,11 @@ def score(crawl: dict, findings: list[dict], judged: dict, perf: dict | None, df
         overall = min(overall, 60)
         caps.append("Capped at 60: the site is not reliably served over HTTPS")
     overall = round(overall)
+    # A score built without Jev or PageSpeed leaves whole areas unassessed; say so wherever it appears.
+    partial = [reason for missing, reason in ((not any(jp.values()), "Jev judgments unavailable, so content quality was not assessed"),
+                                              (not runs, "PageSpeed Insights unavailable, so performance used crawl timings only")) if missing]
     return {
+        "partial": partial,
         "overall": overall,
         "grade": "A" if overall >= 90 else "B" if overall >= 75 else "C" if overall >= 60 else "D" if overall >= 40 else "F",
         "categories": {c: (round(v) if v is not None else None) for c, v in cats.items()},

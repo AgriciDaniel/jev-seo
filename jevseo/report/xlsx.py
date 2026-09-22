@@ -1,6 +1,7 @@
 """Excel workbook. The Actions sheet is the single editable status authority; Summary counts from it by formula."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from openpyxl import Workbook
@@ -27,6 +28,14 @@ HEAD = Font(name="Inter", bold=True, color="FFFFFF", size=10)
 BODY = Font(name="Inter", size=10)
 WRAP = Alignment(wrap_text=True, vertical="top")
 THIN = Border(bottom=Side(style="thin", color=LINE))
+
+
+def cf(ws, rng: str, rule) -> None:
+    """Conditional formatting that skips empty ranges (for example "G2:G1" when a sheet has no rows)."""
+    m = re.match(r"([A-Z]+)(\d+):([A-Z]+)(\d+)$", rng)
+    if m and int(m.group(4)) < int(m.group(2)):
+        return
+    ws.conditional_formatting.add(rng, rule)
 
 
 def table(ws, headers: list[str], rows: list[list], widths: list[int], start_row: int = 1) -> None:
@@ -69,7 +78,7 @@ def write_xlsx(vm: dict, path: Path) -> Path:
     ws["A2"] = f"Audited {d['run']['finished_at']} · {vm['n_fetched']} URLs crawled · {vm['n_pages']} HTML pages · Jev {vm['ledger'].get('model_returned') or 'not used'}"
     ws["A2"].font = Font(name="Inter", size=10, color="52514E")
     ws["A4"], ws["B4"] = "Overall score", s["overall"]
-    ws["A5"], ws["B5"] = "Grade", s["grade"]
+    ws["A5"], ws["B5"] = "Grade", s["grade"] + (" (partial audit)" if s.get("partial") else "")
     ws["A6"], ws["B6"] = "Jev cost (USD)", vm["ledger"].get("cost_usd") or 0
     ws["B6"].number_format = "$0.0000"
     ws["A7"], ws["B7"] = "DataForSEO cost (USD)", (vm["dfs"]["ledger"]["cost_usd"] if vm.get("dfs") else "not used")
@@ -92,7 +101,7 @@ def write_xlsx(vm: dict, path: Path) -> Path:
         ws.cell(r, 3, s["weights"][cat]).font = BODY
         ws.cell(r, 4, s["notes"][cat]).font = BODY
         r += 1
-    ws.conditional_formatting.add(f"B10:B{r - 1}", ColorScaleRule(start_type="num", start_value=0, start_color="FBEAF5", end_type="num", end_value=100, end_color="A83A8C"))
+    cf(ws, f"B10:B{r - 1}", ColorScaleRule(start_type="num", start_value=0, start_color="FBEAF5", end_type="num", end_value=100, end_color="A83A8C"))
     chart = BarChart()
     chart.type = "bar"
     chart.title = "Score by area"
@@ -165,8 +174,8 @@ def write_xlsx(vm: dict, path: Path) -> Path:
             wa[f"D{i}"].fill = PatternFill("solid", fgColor=SEV_FILL[sev])
         wa[f"G{i}"].number_format = "yyyy-mm-dd"
         link(wa[f"S{i}"], wa[f"S{i}"].value)
-    wa.conditional_formatting.add(f"E2:E{n}", CellIsRule(operator="equal", formula=['"done"'], fill=PatternFill("solid", fgColor="DFF3DF")))
-    wa.conditional_formatting.add(f"I2:I{n}", ColorScaleRule(start_type="num", start_value=0, start_color="FFFFFF", end_type="num", end_value=100, end_color="E691CF"))
+    cf(wa, f"E2:E{n}", CellIsRule(operator="equal", formula=['"done"'], fill=PatternFill("solid", fgColor="DFF3DF")))
+    cf(wa, f"I2:I{n}", ColorScaleRule(start_type="num", start_value=0, start_color="FFFFFF", end_type="num", end_value=100, end_color="E691CF"))
 
     # ---------------- Pages
     wp = wb.create_sheet("Pages")
@@ -193,7 +202,7 @@ def write_xlsx(vm: dict, path: Path) -> Path:
     first_jev = get_column_letter(len(cols) - len(JEV_COLUMNS) + 1)
     last = get_column_letter(len(cols))
     if prow:
-        wp.conditional_formatting.add(f"{first_jev}2:{last}{len(prow) + 1}", ColorScaleRule(start_type="num", start_value=0, start_color="FBEAF5", end_type="num", end_value=1, end_color="A83A8C"))
+        cf(wp, f"{first_jev}2:{last}{len(prow) + 1}", ColorScaleRule(start_type="num", start_value=0, start_color="FBEAF5", end_type="num", end_value=1, end_color="A83A8C"))
 
     # ---------------- Jev judgments (raw, with probabilities)
     wj = wb.create_sheet("Jev judgments")
@@ -215,7 +224,7 @@ def write_xlsx(vm: dict, path: Path) -> Path:
     for i in range(2, len(jrows) + 2):
         wj[f"E{i}"].number_format = "0.00"
         wj[f"F{i}"].number_format = "0.00"
-    wj.conditional_formatting.add(f"G2:G{len(jrows) + 1}", CellIsRule(operator="equal", formula=['"review"'], fill=PatternFill("solid", fgColor="FDF0D0")))
+    cf(wj, f"G2:G{len(jrows) + 1}", CellIsRule(operator="equal", formula=['"review"'], fill=PatternFill("solid", fgColor="FDF0D0")))
 
     # ---------------- Technical
     wt = wb.create_sheet("Technical")
@@ -280,7 +289,7 @@ def write_xlsx(vm: dict, path: Path) -> Path:
                          "new page" if page == "none_fit" else a.get("page_url"), verdict])
         rows.sort(key=lambda r: (r[8] != "kept", -(r[1] or 0)))
         table(wo, ["Keyword", "Searches/mo", "Difficulty", "Intent", "Source", "Jev relevance", "Jev P(other brand)", "Page to own it (Jev)", "Kept by Jev filter"], rows, [34, 12, 10, 14, 22, 12, 14, 46, 14])
-        wo.conditional_formatting.add(f"I2:I{len(rows) + 1}", CellIsRule(operator="equal", formula=['"kept"'], fill=PatternFill("solid", fgColor="DFF3DF")))
+        cf(wo, f"I2:I{len(rows) + 1}", CellIsRule(operator="equal", formula=['"kept"'], fill=PatternFill("solid", fgColor="DFF3DF")))
         wcm = wb.create_sheet("Competitors")
         rd = {r["domain"]: r.get("referring_domains") for r in x.get("referring_domains") or []}
         rows = [[c["domain"], c.get("shared_keywords"), round(c["avg_position"], 1) if c.get("avg_position") is not None else None, c.get("keywords"), round(c["etv"]) if c.get("etv") is not None else None, rd.get(c["domain"])] for c in x.get("competitors_all") or []]

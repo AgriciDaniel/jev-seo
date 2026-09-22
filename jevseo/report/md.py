@@ -36,6 +36,8 @@ def write_md(vm: dict, path: Path) -> Path:
     add(f"# Jev SEO audit: {vm['domain']}\n")
     add(f"Audited {d['run']['finished_at']} · {vm['n_fetched']} URLs crawled · {vm['n_pages']} HTML pages · {vm['n_judgments']} Jev judgments · Jev cost ${(vm['ledger'].get('cost_usd') or 0):.4f}\n")
     add(f"**Overall score: {s['overall']}/100 (grade {s['grade']})**" + (f". {'; '.join(s['caps'])}" if s["caps"] else "") + "\n")
+    if s.get("partial"):
+        add(f"> **Partial audit:** {'; '.join(s['partial'])}. The overall score covers only the areas that were assessed.\n")
     add(img(vm, "gauge", "Overall score"))
     add("| Area | Score | Weight | How it is scored |\n|---|---:|---:|---|")
     for c, name in s["category_names"].items():

@@ -34,8 +34,10 @@ skill's base directory, for example `"<skill-dir>/bin/jevseo" doctor`.
 2. **Preflight.** Run `bin/jevseo doctor`. It reports dependencies and
    whether `TYPESAFE_API_KEY` and `PAGESPEED_API_KEY` exist (never their
    values). Without the TypeSafe key, the audit still runs and marks the
-   Jev sections as not assessed; say so. Keys are read from the environment
-   or `~/Desktop/Keys/.env`.
+   Jev sections as not assessed and the score as a partial audit; say so.
+   Keys are read from the environment, then `$JEVSEO_ENV_FILE`, `./.env`,
+   the repository's `.env` (template: `.env.example`), then
+   `~/Desktop/Keys/.env`.
 3. **Audit live, and keep the user posted.** Before running anything, tell
    the user in one line that the audit has started, which site, and that it
    usually takes 1 to 4 minutes. Then start it **in the background** so the
@@ -166,7 +168,9 @@ tracker; Summary counts update from it.
   primitive, levels, bands and how answers become findings.
 - [references/method.md](references/method.md): checks, formulas, data
   flow and known limits.
-- For Jev API design questions, use the Jev System One Brain at
-  `~/Desktop/Jev Second Brain` or the `jev-secretary` agent. Re-check
-  price and model alias there when they matter (`GET
-  https://api.typesafe.ai/v1/models`).
+- [references/evaluation.md](references/evaluation.md): what has been
+  measured about accuracy and repeatability.
+- For Jev API questions use the official docs at
+  https://docs.typesafe.ai (and a local Jev knowledge brain or agent if
+  one is installed). Re-check price and model alias before relying on
+  them (`GET https://api.typesafe.ai/v1/models`).

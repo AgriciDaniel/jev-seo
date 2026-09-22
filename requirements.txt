@@ -1,0 +1,7 @@
+requests
+beautifulsoup4
+lxml
+matplotlib
+jinja2
+weasyprint
+openpyxl

@@ -104,7 +104,7 @@ def _clean(ax, grid_axis: str | None = None):
         ax.set_axisbelow(True)
 
 
-def gauge(cs: ChartSet, value: int, grade: str) -> None:
+def gauge(cs: ChartSet, value: int, grade: str, partial: bool = False) -> None:
     fig, ax = plt.subplots(figsize=(2.6, 2.6))
     ax.set_aspect("equal")
     ax.axis("off")
@@ -112,6 +112,8 @@ def gauge(cs: ChartSet, value: int, grade: str) -> None:
     ax.add_patch(Wedge((0, 0), 1, 90 - 360 * value / 100, 90, width=0.16, color=MAGENTA))
     ax.text(0, 0.08, f"{value}", ha="center", va="center", fontsize=40, fontweight="bold", color=INK)
     ax.text(0, -0.38, f"grade {grade}  ·  out of 100", ha="center", va="center", fontsize=8.5, color=INK2)
+    if partial:
+        ax.text(0, -0.58, "partial audit", ha="center", va="center", fontsize=8.5, fontweight="bold", color=STATUS["critical"])
     ax.set_xlim(-1.05, 1.05)
     ax.set_ylim(-1.05, 1.05)
     cs.save("gauge", fig)

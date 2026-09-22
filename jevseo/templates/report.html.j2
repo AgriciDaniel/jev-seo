@@ -45,7 +45,7 @@
       {{ chart('categories') }}
     </div>
   </div>
-  <div class="cover-foot">Scores are an internal rubric for prioritising work, not a prediction of rankings or traffic. Method, formulas and sources are in the appendix.</div>
+  <div class="cover-foot">{% if scores.partial %}<b>Partial audit:</b> {{ scores.partial | join('; ') }}. {% endif %}Scores are an internal rubric for prioritising work, not a prediction of rankings or traffic. Method, formulas and sources are in the appendix.</div>
 </section>
 
 <!-- EXECUTIVE SUMMARY -->
@@ -123,6 +123,7 @@
     <div>{{ chart('categories') }}</div>
   </div>
   {% if scores.caps %}<div class="note"><b>Score cap:</b> {{ scores.caps | join('; ') }}</div>{% endif %}
+  {% if scores.partial %}<div class="note"><b>Partial audit:</b> {{ scores.partial | join('; ') }}. The overall score covers only the areas that were assessed.</div>{% endif %}
   <table>
     <tr><th>Area</th><th class="num">Score</th><th class="num">Weight</th><th class="num">Actions</th><th>How it is scored</th></tr>
     {% for c, name in scores.category_names.items() %}
