@@ -34,6 +34,8 @@ RAMP = ["#fbeaf5", "#f2c4e4", "#e691cf", "#d45bb6", "#a83a8c", "#6e2059"]
 CMAP = LinearSegmentedColormap.from_list("jev", RAMP)
 PRIORITY = {"P1": RAMP[5], "P2": RAMP[3], "P3": RAMP[1]}
 
+for _f in (Path(__file__).resolve().parent.parent / "fonts").glob("Inter-*.otf"):
+    font_manager.fontManager.addfont(str(_f))  # bundled, so charts match the PDF on every machine
 FONT = "Inter" if any("Inter" == f.name for f in font_manager.fontManager.ttflist) else "DejaVu Sans"
 plt.rcParams.update({
     "font.family": FONT,

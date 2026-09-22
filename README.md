@@ -151,4 +151,4 @@ Large sites are sampled at the page cap (60 by default) and the report says so. 
 
 ## License
 
-[MIT](LICENSE). Jev is a product of TypeSafe AI; DataForSEO and PageSpeed Insights are third-party services with their own terms.
+[MIT](LICENSE). The bundled fonts in `jevseo/fonts/` are Inter and JetBrains Mono under the SIL Open Font License (license texts alongside). Jev is a product of TypeSafe AI; DataForSEO and PageSpeed Insights are third-party services with their own terms.

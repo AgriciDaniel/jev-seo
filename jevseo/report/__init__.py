@@ -121,6 +121,11 @@ def unverified_numbers(text: str, data: dict) -> list[str]:
     return sorted(set(bad))
 
 
+def lower(name: str) -> str:
+    """Lower-case an area name for running text, keeping acronyms such as AI."""
+    return " ".join(w if w.isupper() else w.lower() for w in name.split())
+
+
 def auto_narrative(d: dict) -> dict:
     """Evidence-only fallback used when no lead-agent narrative exists."""
     s = d["scores"]
@@ -133,7 +138,7 @@ def auto_narrative(d: dict) -> dict:
     names = s["category_names"]
     summary = (
         f"{d['site']['domain']} scores {s['overall']} out of 100 (grade {s['grade']}) across {len(cats)} scored areas. "
-        f"The strongest areas are {', '.join(names[c].lower() for c in best)}; the weakest are {', '.join(names[c].lower() for c in worst)}. "
+        f"The strongest areas are {', '.join(lower(names[c]) for c in best)}; the weakest are {', '.join(lower(names[c]) for c in worst)}. "
         f"The audit produced {len(acts)} actions, {len(p1)} of them marked fix first and {len(quick)} quick wins."
     )
     return {

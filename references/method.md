@@ -6,7 +6,8 @@
 homepage URL
   -> crawl.py     robots.txt, sitemaps, BFS over internal links, redirects recorded
                   separately, JavaScript rendering for shell pages, host/HTTPS/404/llms.txt probes,
-                  HEAD checks on uncrawled internal targets and a sample of outbound links
+                  link checks (HEAD, confirmed with GET before anything is called broken) on
+                  uncrawled internal targets and a sample of outbound links
   -> checks.py    52 deterministic rules, each with severity, fix, source URL, effort, heuristic flag
   -> jev.py       site request, one request per page, batched pair requests; ledger and budget cap
   -> dfs.py       (--full) DataForSEO: overview, ranked keywords, competitors, backlinks, bulk referring

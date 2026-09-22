@@ -10,12 +10,21 @@ from jevseo import jev
 from jevseo.checks import RULES
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "templates"
+FONTS = Path(__file__).resolve().parent.parent / "fonts"
+# Bundled fonts (SIL Open Font License) so every machine renders the same design.
+FACES = [("Inter", 400, "Inter-Regular.otf"), ("Inter", 500, "Inter-Medium.otf"), ("Inter", 600, "Inter-SemiBold.otf"),
+         ("Inter", 700, "Inter-Bold.otf"), ("Inter", 800, "Inter-ExtraBold.otf"), ("Inter Display", 700, "InterDisplay-Bold.otf"),
+         ("Inter Display", 800, "InterDisplay-ExtraBold.otf"), ("JetBrains Mono", 500, "JetBrainsMono-Medium.ttf")]
+
+
+def font_css() -> str:
+    return "".join(f"@font-face {{ font-family: '{fam}'; font-weight: {w}; src: url('{(FONTS / f).as_uri()}'); }}\n" for fam, w, f in FACES if (FONTS / f).is_file())
 
 
 def context(vm: dict) -> dict:
     d = vm["d"]
     return vm | {
-        "css": (TEMPLATES / "report.css").read_text(),
+        "css": font_css() + (TEMPLATES / "report.css").read_text(),
         "date": datetime.fromisoformat(d["run"]["finished_at"]).strftime("%d %B %Y"),
         "generated": datetime.now().strftime("%Y-%m-%d %H:%M"),
         "rule_count": len(RULES),

@@ -79,7 +79,7 @@ th { text-align: left; font-weight: 650; color: var(--ink2); border-bottom: 1.2p
 td { border-bottom: 1px solid var(--line); padding: 1.6mm 1.5mm; vertical-align: top; }
 tr { page-break-inside: avoid; }
 td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-.url { font-family: "DejaVu Sans Mono", monospace; font-size: 6.8pt; color: var(--ink2); word-break: break-all; }
+.url { font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; font-size: 6.8pt; color: var(--ink2); word-break: break-all; }
 
 /* Chips */
 .chip { display: inline-block; border-radius: 2mm; padding: 0.4mm 1.8mm; font-size: 6.8pt; font-weight: 650; white-space: nowrap; }
@@ -160,5 +160,5 @@ td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .flow { margin-top: 9mm; padding-top: 5mm; border-top: 1px solid var(--line); }
 .flow > .kicker, .flow > h2 { page-break-after: avoid; }
 h2, h3 { page-break-after: avoid; }
-.sources { column-count: 2; column-gap: 6mm; font-family: "DejaVu Sans Mono", monospace; font-size: 6.3pt; line-height: 1.5; }
+.sources { column-count: 2; column-gap: 6mm; font-family: "JetBrains Mono", "DejaVu Sans Mono", monospace; font-size: 6.3pt; line-height: 1.5; }
 .sources a { display: block; word-break: break-all; }
