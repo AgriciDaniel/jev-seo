@@ -467,5 +467,18 @@ class RenderTests(unittest.TestCase):
         self.assertIn("Custom verdict about JEV-001.", out["md"].read_text())
 
 
+class LanguageTests(unittest.TestCase):
+    def test_fetcher_asks_for_site_language(self):
+        from jevseo.crawl import Fetcher
+
+        self.assertEqual(Fetcher().session.headers["Accept-Language"], "en;q=0.9,*;q=0.5")
+        self.assertEqual(Fetcher(lang="pl").session.headers["Accept-Language"], "pl;q=0.9,*;q=0.5")
+
+    def test_renderer_uses_site_language(self):
+        from jevseo.crawl import Renderer
+
+        self.assertEqual(Renderer(lang="pl").locale, "pl")
+
+
 if __name__ == "__main__":
     unittest.main()
