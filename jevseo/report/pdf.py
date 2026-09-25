@@ -41,10 +41,10 @@ def render_html(vm: dict) -> str:
     return env.get_template("report.html.j2").render(**context(vm))
 
 
-def write_pdf(vm: dict, path: Path) -> Path:
+def write_pdf(vm: dict, path: Path, translate=lambda html: html) -> Path:
     from weasyprint import HTML
 
-    html = render_html(vm)
+    html = translate(render_html(vm))
     path.with_suffix(".html").write_text(html)
     HTML(string=html, base_url=str(path.parent)).write_pdf(path)
     return path

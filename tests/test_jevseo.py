@@ -467,5 +467,54 @@ class RenderTests(unittest.TestCase):
         self.assertIn("Custom verdict about JEV-001.", out["md"].read_text())
 
 
+class LanguageTests(unittest.TestCase):
+    def test_fetcher_asks_for_site_language(self):
+        from jevseo.crawl import Fetcher
+
+        self.assertEqual(Fetcher().session.headers["Accept-Language"], "en;q=0.9,*;q=0.5")
+        self.assertEqual(Fetcher(lang="pl").session.headers["Accept-Language"], "pl;q=0.9,*;q=0.5")
+
+    def test_renderer_uses_site_language(self):
+        from jevseo.crawl import Renderer
+
+        self.assertEqual(Renderer(lang="pl").locale, "pl")
+
+
+class TranslationTests(unittest.TestCase):
+    def setUp(self):
+        from jevseo.i18n import Translator
+
+        self.tr = Translator("pl")
+
+    def test_english_is_identity(self):
+        from jevseo.i18n import Translator
+
+        self.assertEqual(Translator("en")("Fix first"), "Fix first")
+
+    def test_exact_and_nested_patterns(self):
+        self.assertEqual(self.tr("  Fix first "), "  Napraw najpierw ")
+        self.assertEqual(self.tr("JEV-003 · Pages excluded from search with noindex"), "JEV-003 · Strony wykluczone z wyszukiwania przez noindex")
+        self.assertEqual(self.tr("https://example.com/"), "https://example.com/")
+
+    def test_html_keeps_svg_and_translates_css_footer(self):
+        html = '<style>@page { @bottom-left { content: "  ·  Jev SEO audit"; } }</style><p>Fix first</p><svg viewBox="0 0 1 1"><text>Fix first</text></svg>'
+        out = self.tr.html(html)
+        self.assertIn("<p>Napraw najpierw</p>", out)
+        self.assertIn('<svg viewBox="0 0 1 1"><text>Fix first</text></svg>', out)
+        self.assertIn("Audyt SEO Jev", out)
+
+    def test_workbook_formulas_follow_translated_statuses(self):
+        from openpyxl import Workbook
+
+        wb = Workbook()
+        wb.active.title = "Actions"
+        wb.active["E2"] = "to_do"
+        summary = wb.create_sheet("Summary")
+        summary["B1"] = '=COUNTIF(Actions!$E:$E,"to_do")'
+        self.tr.workbook(wb)
+        self.assertEqual(wb.worksheets[0]["E2"].value, "do_zrobienia")
+        self.assertEqual(wb.worksheets[1]["B1"].value, "=COUNTIF('Działania'!$E:$E,\"do_zrobienia\")")
+
+
 if __name__ == "__main__":
     unittest.main()

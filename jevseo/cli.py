@@ -50,7 +50,7 @@ def audit(args) -> Path:
     log(f"Auditing {args.url}: up to {args.max_pages} pages{', full mode with DataForSEO' if args.full else ''}. Typical run {'2 to 5' if args.full else '1 to 4'} minutes; progress follows.")
     stage(1, "robots.txt, sitemaps, then pages")
     t = time.monotonic()
-    site = crawl.crawl(args.url, max_pages=args.max_pages, max_depth=args.max_depth, render_mode=args.render, time_budget=args.time_budget, log=log)
+    site = crawl.crawl(args.url, max_pages=args.max_pages, max_depth=args.max_depth, render_mode=args.render, time_budget=args.time_budget, lang=args.language, log=log)
     timings["crawl"] = round(time.monotonic() - t, 1)
 
     stage(2)
@@ -241,7 +241,7 @@ def render(args) -> None:
     from jevseo.report import build
 
     stage(7, args.formats)
-    build(Path(args.dir), formats=args.formats.split(","), log=log)
+    build(Path(args.dir), formats=args.formats.split(","), log=log, lang=args.report_lang)
 
 
 def run(args) -> None:
@@ -284,7 +284,7 @@ def main(argv=None) -> None:
         p.add_argument("--no-psi", action="store_true")
         p.add_argument("--full", action="store_true", help="add DataForSEO rankings, keywords, competitors, backlinks, SERPs and AI mentions (paid per call)")
         p.add_argument("--location-code", type=int, default=2840, help="DataForSEO location code (2840 = United States)")
-        p.add_argument("--language", default="en", help="DataForSEO language code")
+        p.add_argument("--language", default="en", help="site language: crawler Accept-Language, browser locale and DataForSEO language code")
         p.add_argument("--dfs-budget", type=float, default=1.0, help="hard DataForSEO spend cap in USD")
         p.add_argument("--reuse-dfs", metavar="DIR", help="with --full: reuse DataForSEO data from an earlier audit folder of the same site (no new spend)")
 
@@ -294,10 +294,12 @@ def main(argv=None) -> None:
     p = sub.add_parser("render")
     p.add_argument("dir")
     p.add_argument("--formats", default="pdf,xlsx,md")
+    p.add_argument("--report-lang", default="en", help="report language; needs jevseo/i18n/<lang>.json")
     p.set_defaults(func=render)
     p = sub.add_parser("run")
     audit_opts(p)
     p.add_argument("--formats", default="pdf,xlsx,md")
+    p.add_argument("--report-lang", default="en", help="report language; needs jevseo/i18n/<lang>.json")
     p.set_defaults(func=run)
     p = sub.add_parser("rescore")
     p.add_argument("dir")

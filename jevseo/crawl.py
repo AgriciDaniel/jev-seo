@@ -51,10 +51,14 @@ def public_host(host: str) -> bool:
     return True
 
 
+DEFAULT_LANG = "en"
+
+
 class Fetcher:
-    def __init__(self, delay: float = 0.0):
+    def __init__(self, delay: float = 0.0, lang: str = DEFAULT_LANG):
         self.session = requests.Session()
-        self.session.headers.update({"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml,*/*;q=0.8", "Accept-Language": "en;q=0.9,*;q=0.5"})
+        # Sites that redirect by Accept-Language (e.g. "en" to /en/) must be asked in their own language.
+        self.session.headers.update({"User-Agent": USER_AGENT, "Accept": "text/html,application/xhtml+xml,*/*;q=0.8", "Accept-Language": f"{lang};q=0.9,*;q=0.5"})
         self.delay = delay
         self.lock = threading.Lock()
         self.last = 0.0
@@ -179,9 +183,10 @@ def read_sitemaps(fetcher: Fetcher, urls: list[str], limit: int = 5000) -> dict:
 class Renderer:
     """Headless Chromium through Playwright, started lazily and only if needed."""
 
-    def __init__(self):
+    def __init__(self, lang: str = DEFAULT_LANG):
         self._pw = self._browser = None
         self.available = None
+        self.locale = lang
 
     def render(self, url: str) -> str | None:
         try:
@@ -191,7 +196,7 @@ class Renderer:
                 self._pw = sync_playwright().start()
                 self._browser = self._pw.chromium.launch()
                 self.available = True
-            page = self._browser.new_page(user_agent=USER_AGENT)
+            page = self._browser.new_page(user_agent=USER_AGENT, locale=self.locale)
             page.goto(url, wait_until="networkidle", timeout=30000)
             html = page.content()
             page.close()
@@ -273,7 +278,7 @@ def rerender(rec: dict, renderer: Renderer, site_host: str) -> dict:
     return rec | facts | {"rendered": True, "js_dependent": True}
 
 
-def crawl(start_url: str, max_pages: int = 60, max_depth: int = 5, workers: int = 6, render_mode: str = "auto", time_budget: int = 600, log=print) -> dict:
+def crawl(start_url: str, max_pages: int = 60, max_depth: int = 5, workers: int = 6, render_mode: str = "auto", time_budget: int = 600, lang: str = DEFAULT_LANG, log=print) -> dict:
     if not re.match(r"^https?://", start_url):
         start_url = "https://" + start_url
     start = normalize_url(start_url)
@@ -281,7 +286,7 @@ def crawl(start_url: str, max_pages: int = 60, max_depth: int = 5, workers: int 
     if not public_host(host.split(":")[0]):
         raise SystemExit(f"Refusing to crawl {host}: it does not resolve to a public address.")
 
-    fetcher = Fetcher()
+    fetcher = Fetcher(lang=lang)
     home = fetcher.get(start)
     if home is None:
         raise SystemExit(f"Could not reach {start}.")
@@ -316,7 +321,7 @@ def crawl(start_url: str, max_pages: int = 60, max_depth: int = 5, workers: int 
     r = fetcher.get(origin + "/llms.txt")
     probes["llms_txt"] = bool(r is not None and r.status_code == 200 and "html" not in r.headers.get("content-type", "") and len(r.text.strip()) > 20)
 
-    renderer = Renderer() if render_mode != "never" else None
+    renderer = Renderer(lang) if render_mode != "never" else None
     pages: dict[str, dict] = {}
     depth: dict[str, int] = {final_home: 0}
     queue = deque([final_home])
