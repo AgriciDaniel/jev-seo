@@ -19,7 +19,7 @@ jevseo = "jevseo.cli:main"
 include = ["jevseo*"]
 
 [tool.setuptools.package-data]
-jevseo = ["templates/*", "fonts/*"]
+jevseo = ["templates/*", "fonts/*", "i18n/*"]
 
 [project.urls]
 Homepage = "https://github.com/AgriciDaniel/jev-seo"

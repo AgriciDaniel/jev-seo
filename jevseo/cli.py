@@ -241,7 +241,7 @@ def render(args) -> None:
     from jevseo.report import build
 
     stage(7, args.formats)
-    build(Path(args.dir), formats=args.formats.split(","), log=log)
+    build(Path(args.dir), formats=args.formats.split(","), log=log, lang=args.report_lang)
 
 
 def run(args) -> None:
@@ -294,10 +294,12 @@ def main(argv=None) -> None:
     p = sub.add_parser("render")
     p.add_argument("dir")
     p.add_argument("--formats", default="pdf,xlsx,md")
+    p.add_argument("--report-lang", default="en", help="report language; needs jevseo/i18n/<lang>.json")
     p.set_defaults(func=render)
     p = sub.add_parser("run")
     audit_opts(p)
     p.add_argument("--formats", default="pdf,xlsx,md")
+    p.add_argument("--report-lang", default="en", help="report language; needs jevseo/i18n/<lang>.json")
     p.set_defaults(func=run)
     p = sub.add_parser("rescore")
     p.add_argument("dir")

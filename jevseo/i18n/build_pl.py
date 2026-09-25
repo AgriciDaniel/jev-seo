@@ -1,0 +1,498 @@
+"""Generate jevseo/i18n/pl.json: python3 jevseo/i18n/build_pl.py jevseo/i18n/pl.json. Exact strings first, then regex patterns (t_* groups translated recursively)."""
+import json
+import sys
+
+T = {}
+
+
+def add(d):
+    T.update(d)
+
+
+# ---------------------------------------------------------------- enums (both raw and spaced forms)
+ENUMS = {
+    "homepage": "strona główna", "product_or_service": "produkt lub usługa", "category_or_listing": "kategoria lub listing",
+    "article_or_guide": "artykuł lub poradnik", "about_or_team": "o firmie lub zespole", "contact_or_location": "kontakt lub lokalizacja",
+    "pricing": "cennik", "case_study_or_proof": "realizacje lub opinie", "support_or_docs": "pomoc lub dokumentacja",
+    "legal_or_policy": "regulamin lub polityka", "other": "inne",
+    "informational": "informacyjna", "commercial": "komercyjna", "transactional": "transakcyjna", "navigational": "nawigacyjna",
+    "local": "lokalna", "unclear": "niejasna",
+    "keep_or_improve": "zostaw lub popraw", "rewrite": "przepisz", "merge_or_remove": "scal lub usuń", "keep": "zostaw",
+    "local_service": "usługi lokalne", "ecommerce": "sklep internetowy", "saas_or_software": "SaaS lub oprogramowanie",
+    "agency_or_b2b_services": "agencja lub usługi B2B", "publisher_or_media": "wydawca lub media", "education_or_course": "edukacja lub kursy",
+    "nonprofit_or_public": "non-profit lub sektor publiczny", "personal_or_portfolio": "strona osobista lub portfolio",
+    "to_do": "do_zrobienia", "in_progress": "w_toku", "done": "zrobione", "deferred": "odłożone", "not_applicable": "nie_dotyczy",
+    "business_model": "model biznesowy", "value_prop": "czytelność oferty", "entity_clarity": "kto, co, gdzie",
+    "topical_focus": "spójność tematyczna", "serves_local_area": "obsługa lokalna",
+    "page_type": "typ strony", "answer_first": "odpowiedź na początku", "clear_next_step": "następny krok",
+    "title_fit": "trafność tytułu", "meta_fit": "trafność opisu meta", "h1_fit": "trafność H1",
+}
+add(ENUMS)
+add({k.replace("_", " "): v.replace("_", " ") for k, v in ENUMS.items() if "_" in k})
+add({"merge or remove": "scal lub usuń", "keep or improve": "zostaw lub popraw", "local service": "usługi lokalne",
+     "nonprofit or public": "non-profit lub sektor publiczny", "other types": "inne typy"})
+
+# ---------------------------------------------------------------- labels, headings, table heads
+add({
+    "(site)": "(serwis)", "A day": "Dzień", "A project": "Projekt", "About a day": "Około dnia", "Hours": "Kilka godzin",
+    "Several days": "Kilka dni", "Days": "Dni", "Fix first": "Napraw najpierw", "Plan next": "Zaplanuj jako następne",
+    "When convenient": "Przy okazji",
+    "AI search readiness": "Gotowość na wyszukiwarki AI", "Access": "Dostęp", "Accessibility": "Dostępność",
+    "Action": "Działanie", "Action (Jev)": "Działanie (Jev)", "Actions": "Działania", "Actions by area and severity": "Działania według obszaru i wagi",
+    "Actions by severity": "Działania według wagi", "Affected URLs": "Adresy, których dotyczy", "Alternate host": "Alternatywny host",
+    "Answer first (Jev)": "Odpowiedź na początku (Jev)", "Appendix": "Aneks", "Area": "Obszar", "Area score": "Wynik obszaru",
+    "Band": "Przedział", "Best practices": "Dobre praktyki", "By": "Źródło", "Canonical": "Canonical", "Check": "Kontrola",
+    "Chrome UX Report field data and Lighthouse lab scores": "Dane terenowe Chrome UX Report i wyniki laboratoryjne Lighthouse",
+    "Citability (Jev)": "Cytowalność (Jev)", "Click depth from the homepage": "Głębokość kliknięć od strony głównej", "Code": "Kod",
+    "Confidence": "Pewność", "Content quality": "Jakość treści", "Cost": "Koszt", "Crawl": "Crawl", "Crawl and indexing": "Crawl i indeksowanie",
+    "Crawl limits": "Limity crawla", "Depth": "Głębokość", "Detail": "Szczegóły", "Device": "Urządzenie", "Due": "Termin",
+    "Effort": "Wysiłek", "Evidence": "Dowody", "Executive summary": "Podsumowanie", "Executive summary · the plan": "Podsumowanie · plan",
+    "FINE AS IS": "W PORZĄDKU", "Field data level": "Poziom danych terenowych", "Findings by area": "Ustalenia według obszarów",
+    "Fix": "Poprawka", "Fix:": "Poprawka:", "Formulas": "Wzory", "Grade": "Ocena", "Guess at meaning": "Zgadywanie znaczenia",
+    "HTML pages analysed": "Przeanalizowane strony HTML", "HTTP redirects to HTTPS": "HTTP przekierowuje na HTTPS",
+    "HTTP status of crawled URLs": "Statusy HTTP zbadanych adresów", "Helpfulness (Jev)": "Przydatność (Jev)", "Heuristic": "Heurystyka",
+    "Homepage": "Strona główna", "How Jev reads the site": "Jak Jev odczytuje serwis", "How it is scored": "Jak liczony jest wynik",
+    "How sure was Jev?": "Jak pewny był Jev?", "How the site is linked": "Jak linkowany jest serwis", "How this audit was made": "Jak powstał ten audyt",
+    "Images": "Obrazy", "Impact": "Wpływ", "Importance": "Waga strony", "Importance (Jev)": "Waga strony (Jev)",
+    "Important but weak": "Ważne, ale słabe", "In": "Wejście", "In sitemap": "W sitemapie", "Indexable": "Indeksowalna",
+    "Inlinks": "Linki przychodzące", "Input tokens": "Tokeny wejściowe", "Intent (Jev)": "Intencja (Jev)", "Jev": "Jev",
+    "Jev SEO audit": "Audyt SEO Jev", "Jev answers decisive": "Rozstrzygające odpowiedzi Jev", "Jev bands": "Przedziały Jev",
+    "Jev cost (USD)": "Koszt Jev (USD)", "Jev importance": "Waga według Jev", "Jev judged": "ocena Jev", "Jev judges": "Jev ocenia",
+    "Jev judgments": "Oceny Jev", "Jev ledger": "Rejestr kosztów Jev", "Jev suggests": "Jev sugeruje", "Jev verdicts": "werdykty Jev",
+    "Judged by": "Oceniane przez", "Judged by Jev": "Ocenione przez Jev", "Judgments": "Oceny", "Limits": "Ograniczenia",
+    "Links and architecture": "Linki i architektura", "Live status counts (from the Actions sheet)": "Bieżące statusy (z arkusza Działania)",
+    "Measure": "Miara", "Meta chars": "Znaki meta", "Meta fit (Jev)": "Trafność meta (Jev)", "Method and limits": "Metoda i ograniczenia",
+    "Method, sources and limits": "Metoda, źródła i ograniczenia", "Missing page status": "Status nieistniejącej strony", "Model": "Model",
+    "Needs human check": "Wymaga sprawdzenia", "Never does": "Nigdy nie robi", "Next step (Jev)": "Następny krok (Jev)", "No alt": "Bez alt",
+    "Not used (run with --full)": "Nieużywane (uruchom z --full)", "Notes": "Notatki", "On-page": "On-page",
+    "Open actions by priority": "Otwarte działania według priorytetu", "Outlinks": "Linki wychodzące", "Overall": "Ogółem",
+    "Overall score": "Wynik ogólny", "Owner": "Odpowiedzialny", "Owns": "Odpowiada za", "Page": "Strona", "Page A": "Strona A", "Page B": "Strona B",
+    "Page cap reached": "Osiągnięto limit stron", "Page inventory": "Spis stron", "Page quality heatmap": "Mapa ciepła jakości stron",
+    "Page types (Jev Choice)": "Typy stron (Jev Choice)", "Page types (Jev)": "Typy stron (Jev)", "Pages": "Strony",
+    "Performance": "Wydajność", "Pipeline": "Proces", "Plan": "Plan", "Primitive": "Typ pytania", "Priorities": "Priorytety",
+    "Priority": "Priorytet", "Priority actions": "Działania priorytetowe", "Quality": "Jakość", "Question": "Pytanie", "Quick win": "Szybka poprawka",
+    "Render mode": "Tryb renderowania", "Rendered": "Renderowana", "Rendering": "Renderowanie", "Requests": "Zapytania",
+    "Requests made": "Wykonane zapytania", "Robots access": "Dostęp robotów", "Rules": "Reguły", "Rules only": "Tylko reguły",
+    "Rules plus Jev findings": "Reguły i ustalenia Jev", "Schema": "Schema", "Score": "Wynik", "Score and write": "Ocena i opis",
+    "Scorecard": "Karta wyników", "Search intent (Jev Choice)": "Intencja wyszukiwania (Jev Choice)", "Search intent (Jev)": "Intencja wyszukiwania (Jev)",
+    "Search visibility and authority": "Widoczność i autorytet", "Security and trust": "Bezpieczeństwo i zaufanie", "Severity": "Waga",
+    "Side probability (Score)": "Prawdopodobieństwo (Score)", "Site structure": "Struktura serwisu", "Sitemaps declared": "Zadeklarowane sitemapy",
+    "Source": "Źródło", "Sources": "Źródła", "Specificity (Jev)": "Konkretność (Jev)", "Stage": "Etap", "Status": "Status",
+    "Status authority": "Źródło statusu", "Structured data and sharing": "Dane strukturalne i udostępnianie",
+    "Suggested action per page": "Sugerowane działanie dla strony", "This Jev run": "Ten przebieg Jev", "This month": "W tym miesiącu",
+    "This quarter": "W tym kwartale", "This week": "W tym tygodniu", "Title": "Tytuł", "Title chars": "Znaki tytułu", "Title fit (Jev)": "Trafność tytułu (Jev)",
+    "Title overlap": "Pokrycie tytułów", "Topic": "Temat", "Total actions": "Wszystkie działania", "Trust (Jev)": "Zaufanie (Jev)", "Type (Jev)": "Typ (Jev)",
+    "URLs crawled": "Zbadane adresy", "URLs discovered": "Wykryte adresy", "User agent": "User agent", "Value": "Wartość", "Verify": "Sprawdź",
+    "Weight": "Waga", "What is holding the site back": "Co hamuje serwis", "What is working": "Co działa",
+    "What the crawl found": "Co znalazł crawl", "What to fix first": "Co naprawić najpierw", "What went through each stage": "Co przeszło przez każdy etap",
+    "What works, what holds it back, what to do": "Co działa, co hamuje, co robić", "Where to invest": "Gdzie inwestować", "Who decides what": "Kto o czym decyduje",
+    "Words": "Słowa", "act": "rozstrzygające", "action": "działanie", "actions": "działania", "actions found": "znalezione działania",
+    "allowed": "dozwolony", "auto": "auto", "choice": "choice", "citable": "cytowalność", "clicks from homepage": "kliknięcia od strony głównej",
+    "compete": "konkurują", "correct": "poprawny", "critical": "krytyczna", "critical or high": "krytyczna lub wysoka", "decisive": "rozstrzygające",
+    "desktop": "desktop", "fix-first actions": "działania do naprawy najpierw", "found": "znaleziono", "good": "dobry", "helpful": "przydatność",
+    "helpfulness": "przydatność", "heuristic": "heurystyka", "high": "wysoka", "importance": "waga", "intent": "intencja",
+    "judged quality (mean of helpfulness, specificity, trust)": "oceniona jakość (średnia: przydatność, konkretność, zaufanie)",
+    "low": "niska", "medium": "średnia", "meta": "meta", "mobile": "mobile", "n/a": "b.d.", "needs a human check": "wymaga sprawdzenia",
+    "needs improvement": "do poprawy", "next step": "następny krok", "no": "nie", "yes": "tak", "not assessed": "nie oceniono", "not found": "nie znaleziono",
+    "not used": "nieużywane", "noul": "noul", "optional": "opcjonalne", "origin": "domena", "page": "strona", "page type": "typ strony",
+    "pages": "strony", "pages judged": "ocenione strony", "performance": "wydajność", "present": "jest", "quick win": "szybka poprawka",
+    "quick wins": "szybkie poprawki", "ranked actions": "uszeregowane działania", "relative impact": "względny wpływ", "review": "do sprawdzenia",
+    "rule": "reguła", "rule findings": "ustalenia reguł", "score": "wynik", "search": "wyszukiwanie", "seo": "seo", "specific": "konkretność",
+    "specificity": "konkretność", "title": "tytuł", "title length (characters)": "długość tytułu (znaki)", "trust": "zaufanie",
+    "words of main content": "słowa w treści głównej", "accessibility": "dostępność", "best practices": "dobre praktyki", "answer 1st": "odp. na pocz.",
+    "not linked": "bez linków", "effort (planning estimate)": "wysiłek (szacunek do planowania)", "Import.": "Waga",
+    "BIG BETS": "DUŻE PROJEKTY", "FILL-INS": "UZUPEŁNIENIA", "LATER": "PÓŹNIEJ", "LOW PRIORITY": "NISKI PRIORYTET", "QUICK WINS": "SZYBKIE POPRAWKI",
+    "INVEST HERE: important, weak": "INWESTUJ TU: ważne, słabe", "PROTECT: important, strong": "CHROŃ: ważne, mocne",
+    "Priority:": "Priorytet:", "Quick win:": "Szybka poprawka:", "Final homepage URL": "Końcowy adres strony głównej",
+    "Nonexistent URL status": "Status nieistniejącego adresu", "Sitemap URLs": "Adresy w sitemapie", "HTML KB": "HTML KB", "HTTP status": "Status HTTP",
+    "TTFB ms": "TTFB ms", "URL": "URL", "ID": "ID", "LCP rating": "Ocena LCP", "INP rating": "Ocena INP", "CLS rating": "Ocena CLS",
+    "Largest lab opportunities (mobile homepage)": "Największe możliwości wg Lighthouse (strona główna, mobile)", "PageSpeed runs": "Pomiary PageSpeed",
+    "DataForSEO cost (USD)": "Koszt DataForSEO (USD)", "choice · verify": "choice · sprawdź", "Reduce unused CSS": "Ogranicz nieużywany CSS",
+    "Reduce unused JavaScript": "Ogranicz nieużywany JavaScript", "XML sitemap": "Sitemapa XML", "P(compete)": "P(konkurencja)",
+    "Anchors such as: here": "Anchory typu: tutaj", "Heading levels skipped": "Pominięte poziomy nagłówków",
+    "Crawling, status codes, counts, duplicates, schema parsing, formulas, ranking": "Crawl, kody statusu, liczenie, duplikaty, parsowanie schema, wzory, ranking",
+    "Summary": "Podsumowanie", "Score by area": "Wynik według obszarów", "Action status": "Status działań", "Pages ": "Strony",
+    "Technical": "Technika", "Charts": "Wykresy", "Method": "Metoda", "Lighthouse scores": "Wyniki Lighthouse", "Rankings": "Pozycje",
+    "Opportunities": "Szanse", "Competitors": "Konkurenci", "AI mentions": "Wzmianki w AI", "Claude, from the audit evidence": "Claude, na podstawie dowodów z audytu",
+    "Findings · Performance": "Ustalenia · Wydajność", "Findings · AI search readiness": "Ustalenia · Gotowość na wyszukiwarki AI",
+    "Findings · Content quality": "Ustalenia · Jakość treści", "Findings · Crawl and indexing": "Ustalenia · Crawl i indeksowanie",
+    "Findings · Links and architecture": "Ustalenia · Linki i architektura", "Findings · On-page": "Ustalenia · On-page",
+    "Findings · Security and trust": "Ustalenia · Bezpieczeństwo i zaufanie", "Findings · Structured data and sharing": "Ustalenia · Dane strukturalne i udostępnianie",
+    "Findings · Search visibility and authority": "Ustalenia · Widoczność i autorytet",
+    "Claude": "Claude",
+})
+
+# ---------------------------------------------------------------- site questions and truncated score levels
+add({
+    "What kind of business is this?": "Jaki to rodzaj działalności?", "How clear is the offer on the homepage?": "Jak czytelna jest oferta na stronie głównej?",
+    "Does the homepage say who, what and where?": "Czy strona główna mówi kto, co i gdzie?", "How focused is the site's topic set?": "Jak spójna jest tematyka serwisu?",
+    "Does it serve a specific local area?": "Czy obsługuje konkretny obszar lokalny?",
+    "A visitor cannot tell what is offe": "Odwiedzający nie wie, co jest oferowane", "The offer is guessable but vague o": "Ofertę da się zgadnąć, ale jest mglista",
+    "Offer, audience and a specific rea": "Oferta, odbiorca i konkretny powód", "The offer and audience are clear;": "Oferta i odbiorca są jasne;",
+    "Scattered topics with no visible c": "Rozproszone tematy bez wspólnego rdzenia", "A loose theme with many unrelated": "Luźny temat z wieloma obcymi wątkami",
+    "A clear theme with a few off-topic": "Wyraźny temat z kilkoma odejściami", "Tightly organised around a clear s": "Ściśle wokół jasnego tematu",
+})
+
+# ---------------------------------------------------------------- finding titles and fixes (all rules, Jev and DataForSEO)
+add({
+    "No robots.txt file": "Brak pliku robots.txt",
+    "Publish a robots.txt at the site root that allows crawling and lists the sitemap.": "Opublikuj robots.txt w katalogu głównym, który pozwala na crawl i wskazuje sitemapę.",
+    "robots.txt blocks search crawlers from the whole site": "robots.txt blokuje roboty wyszukiwarek w całym serwisie",
+    "Remove the site-wide Disallow for search engine user agents.": "Usuń globalne Disallow dla robotów wyszukiwarek.",
+    "No XML sitemap found": "Nie znaleziono sitemapy XML",
+    "Generate an XML sitemap of canonical, indexable URLs and reference it in robots.txt.": "Wygeneruj sitemapę XML z kanonicznymi, indeksowalnymi adresami i wskaż ją w robots.txt.",
+    "Sitemap file unreachable or invalid": "Plik sitemapy niedostępny lub błędny",
+    "Fix the sitemap URL so it returns HTTP 200 with valid XML.": "Popraw adres sitemapy, aby zwracał HTTP 200 i poprawny XML.",
+    "Sitemap lists URLs that redirect, fail or are noindex": "Sitemapa zawiera adresy z przekierowaniem, błędem lub noindex",
+    "List only final, indexable, HTTP 200 URLs in the sitemap.": "Umieszczaj w sitemapie tylko docelowe, indeksowalne adresy z HTTP 200.",
+    "Indexable pages missing from the sitemap": "Indeksowalne strony nieobecne w sitemapie",
+    "Add these canonical pages to the sitemap.": "Dodaj te kanoniczne strony do sitemapy.",
+    "Pages returning HTTP errors": "Strony zwracające błędy HTTP",
+    "Restore these URLs or redirect them to the closest live equivalent, and update links.": "Przywróć te adresy albo przekieruj je na najbliższy działający odpowiednik i popraw linki.",
+    "Internal links pointing to broken URLs": "Linki wewnętrzne do niedziałających adresów",
+    "Update or remove links that point to 4xx, 5xx or unreachable URLs.": "Popraw lub usuń linki do adresów 4xx, 5xx albo nieosiągalnych.",
+    "Redirect chains (more than one hop)": "Łańcuchy przekierowań (więcej niż jeden skok)",
+    "Point each redirect straight at its final URL.": "Kieruj każde przekierowanie wprost na adres docelowy.",
+    "Internal links that go through a redirect": "Linki wewnętrzne przechodzące przez przekierowanie",
+    "Link directly to the final URL.": "Linkuj bezpośrednio do adresu docelowego.",
+    "Pages excluded from search with noindex": "Strony wykluczone z wyszukiwania przez noindex",
+    "Confirm each noindex is intended; remove it from pages that should rank.": "Potwierdź, że każdy noindex jest zamierzony; usuń go ze stron, które mają się pozycjonować.",
+    "Pages without a canonical link": "Strony bez linku canonical",
+    "Add a self-referencing rel=canonical to each indexable page.": "Dodaj samoodwołujący rel=canonical na każdej indeksowalnej stronie.",
+    "Canonical points to a different URL": "Canonical wskazuje inny adres",
+    "Check that these pages really are duplicates of their canonical target; otherwise self-canonicalise.": "Sprawdź, czy te strony naprawdę duplikują stronę wskazaną w canonical; jeśli nie, ustaw canonical na siebie.",
+    "Canonical target redirects or returns an error": "Adres z canonical przekierowuje lub zwraca błąd",
+    "Point canonicals at live, indexable URLs.": "Wskazuj w canonical działające, indeksowalne adresy.",
+    "Missing pages return HTTP 200 (soft 404)": "Nieistniejące strony zwracają HTTP 200 (soft 404)",
+    "Return a real 404 or 410 status for URLs that do not exist.": "Zwracaj prawdziwy status 404 lub 410 dla nieistniejących adresów.",
+    "Host or HTTPS redirect is temporary (302 or 307)": "Przekierowanie hosta lub na HTTPS jest tymczasowe (302 lub 307)",
+    "Use a permanent redirect (301 or 308) for www, non-www and HTTP to HTTPS, so search engines consolidate on one host.": "Użyj stałego przekierowania (301 lub 308) dla www, bez www i HTTP na HTTPS, by wyszukiwarki scaliły sygnały na jednym hoście.",
+    "www and non-www both serve the site": "Serwis działa jednocześnie z www i bez www",
+    "Redirect the alternate host to the preferred host with a permanent redirect.": "Przekieruj alternatywny host na preferowany przekierowaniem stałym.",
+    "Site not served over HTTPS, or HTTP does not redirect to HTTPS": "Serwis nie działa po HTTPS albo HTTP nie przekierowuje na HTTPS",
+    "Serve every page over HTTPS and permanently redirect HTTP to HTTPS.": "Serwuj każdą stronę po HTTPS i przekieruj na stałe HTTP na HTTPS.",
+    "Pages more than three clicks from the homepage": "Strony dalej niż trzy kliknięcia od strony głównej",
+    "Link important deep pages from hubs or navigation closer to the homepage.": "Linkuj ważne, głęboko schowane strony z hubów lub nawigacji bliżej strony głównej.",
+    "Sitemap pages with no internal links (orphans)": "Strony z sitemapy bez linków wewnętrznych (osierocone)",
+    "Link these pages from relevant pages so users and crawlers can reach them.": "Podlinkuj te strony z powiązanych stron, by użytkownicy i roboty mogli do nich dotrzeć.",
+    "Content only appears after JavaScript runs": "Treść pojawia się dopiero po uruchomieniu JavaScriptu",
+    "Server-render or pre-render primary content and links.": "Renderuj główną treść i linki po stronie serwera lub wstępnie.",
+    "Pages without a title": "Strony bez tytułu", "Write a unique, descriptive title for each page.": "Napisz unikalny, opisowy tytuł dla każdej strony.",
+    "Duplicate titles across pages": "Powielone tytuły na wielu stronach",
+    "Give each page a title that distinguishes it from the others.": "Nadaj każdej stronie tytuł, który odróżnia ją od pozostałych.",
+    "Very short or very long titles": "Bardzo krótkie lub bardzo długie tytuły",
+    "Aim for a concise, descriptive title. Google truncates by pixel width, so there is no fixed limit; 15 to 65 characters is a display convention.": "Celuj w zwięzły, opisowy tytuł. Google przycina według szerokości w pikselach, więc nie ma sztywnego limitu; 15–65 znaków to konwencja wyświetlania.",
+    "More than one title element": "Więcej niż jeden element title", "Keep a single title element in the head.": "Zostaw jeden element title w sekcji head.",
+    "Pages without a meta description": "Strony bez opisu meta",
+    "Write a page-specific summary. Google may still generate its own snippet.": "Napisz podsumowanie właściwe dla strony. Google i tak może wygenerować własny fragment.",
+    "Duplicate meta descriptions": "Powielone opisy meta", "Write a distinct description for each page.": "Napisz odrębny opis dla każdej strony.",
+    "Pages without an H1 heading": "Strony bez nagłówka H1",
+    "Give each page one visible main heading that states its topic.": "Daj każdej stronie jeden widoczny nagłówek główny, który nazywa jej temat.",
+    "Pages with several H1 headings": "Strony z kilkoma nagłówkami H1", "Use one main heading and H2 or lower for sections.": "Użyj jednego nagłówka głównego, a dla sekcji H2 i niższych.",
+    "Nest headings in order (H2 under H1, H3 under H2).": "Zagnieżdżaj nagłówki po kolei (H2 pod H1, H3 pod H2).",
+    "HTML lang attribute missing": "Brak atrybutu lang w HTML", "Declare the page language on the html element.": "Zadeklaruj język strony w elemencie html.",
+    "No mobile viewport meta tag": "Brak meta viewport dla urządzeń mobilnych", "Add a responsive viewport meta tag.": "Dodaj responsywny znacznik meta viewport.",
+    "Pages with very little main content": "Strony z bardzo małą ilością treści",
+    "Expand pages that should rank with substance a visitor needs, or consolidate them. Word count is a warning sign, not a ranking factor.": "Rozbuduj strony, które mają się pozycjonować, o treść potrzebną odwiedzającym, albo je scal. Liczba słów to sygnał ostrzegawczy, nie czynnik rankingowy.",
+    "Pages with identical main text": "Strony z identyczną treścią główną", "Consolidate duplicates or canonicalise them to one URL.": "Scal duplikaty albo wskaż jeden adres przez canonical.",
+    "Images without alt attributes": "Obrazy bez atrybutu alt",
+    "Add alt text that describes informative images; use empty alt for decorative ones.": "Dodaj tekst alt opisujący obrazy informacyjne; dla dekoracyjnych użyj pustego alt.",
+    "Images without width and height": "Obrazy bez szerokości i wysokości",
+    "Set width and height so layout does not shift while images load.": "Ustaw szerokość i wysokość, by układ nie przeskakiwał podczas ładowania obrazów.",
+    "No structured data on the homepage": "Brak danych strukturalnych na stronie głównej",
+    "Add JSON-LD describing the organisation and website (for example Organization and WebSite).": "Dodaj JSON-LD opisujący organizację i serwis (np. Organization i WebSite).",
+    "Structured data that fails to parse": "Dane strukturalne z błędem składni", "Fix the JSON-LD syntax so search engines can read it.": "Popraw składnię JSON-LD, by wyszukiwarki mogły ją odczytać.",
+    "Structured data missing properties Google requires for rich results": "Dane strukturalne bez właściwości wymaganych przez Google do wyników rozszerzonych",
+    "Add the missing required properties listed in the evidence, or remove markup that cannot be completed truthfully.": "Dodaj brakujące wymagane właściwości wymienione w dowodach albo usuń znaczniki, których nie da się uzupełnić zgodnie z prawdą.",
+    "FAQPage markup: rich results only for government and health sites": "Znaczniki FAQPage: wyniki rozszerzone tylko dla serwisów rządowych i medycznych",
+    "Keep the markup if it helps other consumers, but do not expect FAQ rich results unless the site is a well-known government or health authority.": "Zostaw znaczniki, jeśli służą innym odbiorcom, ale nie oczekuj wyników rozszerzonych FAQ, chyba że serwis jest znanym źródłem rządowym lub medycznym.",
+    "Open Graph title or image missing": "Brak tytułu lub obrazu Open Graph",
+    "Add og:title, og:description and og:image for link previews.": "Dodaj og:title, og:description i og:image dla podglądów linków.",
+    "hreflang annotations incomplete": "Niekompletne oznaczenia hreflang",
+    "Each language version needs a self-reference and return links; add x-default where useful.": "Każda wersja językowa potrzebuje odwołania do siebie i linków zwrotnych; dodaj x-default, gdzie ma to sens.",
+    "AI crawlers blocked in robots.txt": "Roboty AI zablokowane w robots.txt",
+    "Decide deliberately. Blocking Google-Extended does not affect Google Search; blocking search-oriented AI bots can remove the site from those answer engines.": "Zdecyduj świadomie. Blokada Google-Extended nie wpływa na wyszukiwarkę Google; blokada wyszukujących botów AI może usunąć serwis z ich odpowiedzi.",
+    "No llms.txt file": "Brak pliku llms.txt", "Optional. llms.txt is a community proposal, not a search engine requirement.": "Opcjonalne. llms.txt to propozycja społeczności, nie wymóg wyszukiwarek.",
+    "No Strict-Transport-Security header": "Brak nagłówka Strict-Transport-Security",
+    "Send an HSTS header once HTTPS is stable everywhere.": "Wysyłaj nagłówek HSTS, gdy HTTPS działa stabilnie wszędzie.",
+    "Common security headers missing": "Brak typowych nagłówków bezpieczeństwa",
+    "Add X-Content-Type-Options, a Referrer-Policy and a frame policy.": "Dodaj X-Content-Type-Options, Referrer-Policy i politykę ramek.",
+    "Add the missing headers: x-content-type-options, referrer-policy, x-frame-options or CSP frame-ancestors.": "Dodaj brakujące nagłówki: x-content-type-options, referrer-policy, x-frame-options lub CSP frame-ancestors.",
+    "HTTPS pages loading HTTP resources": "Strony HTTPS ładujące zasoby po HTTP", "Load every resource over HTTPS.": "Ładuj każdy zasób po HTTPS.",
+    "No favicon declared": "Brak zadeklarowanego favicona", "Declare a favicon; Google shows it beside results.": "Zadeklaruj favicon; Google pokazuje go obok wyników.",
+    "Slow server response (TTFB above 0.8 s)": "Wolna odpowiedź serwera (TTFB powyżej 0,8 s)",
+    "Cache pages, use a CDN and reduce server work before the first byte.": "Cache'uj strony, użyj CDN i ogranicz pracę serwera przed wysłaniem pierwszego bajtu.",
+    "Very large HTML documents (over 500 KB)": "Bardzo duże dokumenty HTML (ponad 500 KB)",
+    "Trim inline data and markup that ships with every page.": "Odchudź dane i znaczniki osadzone w każdej stronie.",
+    "Internal links with generic anchor text": "Linki wewnętrzne z ogólnikowym anchorem", "Use anchor text that describes the destination.": "Używaj anchorów opisujących stronę docelową.",
+    "External links returning errors": "Linki zewnętrzne zwracające błędy", "Update or remove outbound links that no longer resolve.": "Popraw lub usuń linki wychodzące, które już nie działają.",
+    "Homepage does not make the offer clear": "Strona główna nie wyjaśnia oferty",
+    "State what you offer, for whom, and why choose you in the first screen of the homepage.": "Na pierwszym ekranie strony głównej powiedz, co oferujesz, komu i dlaczego warto wybrać właśnie Ciebie.",
+    "Homepage does not state who, what and where plainly": "Strona główna nie mówi jasno kto, co i gdzie",
+    "Say the organisation's name, what it does and its market or location in plain words near the top. Editorial heuristic: Google states no special optimization is required for its AI features.": "Blisko góry strony podaj prostymi słowami nazwę firmy, czym się zajmuje i gdzie działa. Heurystyka redakcyjna: Google deklaruje, że jego funkcje AI nie wymagają specjalnej optymalizacji.",
+    "Local business without LocalBusiness structured data": "Firma lokalna bez danych strukturalnych LocalBusiness",
+    "Add LocalBusiness JSON-LD with name, address, phone and opening hours that match the page.": "Dodaj JSON-LD LocalBusiness z nazwą, adresem, telefonem i godzinami otwarcia zgodnymi ze stroną.",
+    "Important pages that do not satisfy the visitor": "Ważne strony, które nie zaspokajają potrzeb odwiedzających",
+    "Expand these pages with the substance a visitor needs: answers, specifics, examples and next steps.": "Rozbuduj te strony o treść, której szuka odwiedzający: odpowiedzi, konkrety, przykłady i kolejne kroki.",
+    "Generic content that any competitor could publish": "Ogólnikowa treść, którą mógłby opublikować każdy konkurent",
+    "Add first-hand specifics: your own numbers, processes, examples, locations, names and results.": "Dodaj konkrety z pierwszej ręki: własne liczby, procesy, przykłady, lokalizacje, nazwy i efekty.",
+    "Key pages show little evidence of expertise or trust": "Kluczowe strony słabo pokazują ekspertyzę i wiarygodność",
+    "Add named people, credentials, reviews, sources, results and contact details where they help the reader.": "Dodaj imiona i nazwiska, kwalifikacje, opinie, źródła, efekty i dane kontaktowe tam, gdzie pomagają czytelnikowi.",
+    "Commercial pages without a clear next step": "Strony sprzedażowe bez jasnego następnego kroku",
+    "Give each commercial page one obvious, relevant call to action.": "Daj każdej stronie sprzedażowej jedno oczywiste, trafne wezwanie do działania.",
+    "Titles that do not describe the page well": "Tytuły, które słabo opisują stronę",
+    "Rewrite these titles to name what the page offers in the searcher's words.": "Przepisz te tytuły tak, by nazywały ofertę strony słowami szukającego.",
+    "Weak meta descriptions": "Słabe opisy meta",
+    "Rewrite these descriptions as a specific summary of what the page delivers.": "Przepisz te opisy jako konkretne podsumowanie tego, co daje strona.",
+    "Main headings that do not state the topic": "Nagłówki główne, które nie nazywają tematu",
+    "Make the H1 name the page's topic rather than a slogan.": "Niech H1 nazywa temat strony zamiast być hasłem.",
+    "Pages that bury the main point": "Strony, które chowają najważniejszą informację",
+    "Open with a one or two sentence answer or offer before any preamble. Editorial heuristic for readers and answer engines, not a Google requirement.": "Zacznij od odpowiedzi lub oferty w jednym–dwóch zdaniach, przed jakimkolwiek wstępem. Heurystyka redakcyjna dla czytelników i wyszukiwarek odpowiedzi, nie wymóg Google.",
+    "Few self-contained, quotable facts": "Mało samodzielnych faktów nadających się do cytowania",
+    "Add clear statements of fact, definitions and figures that make sense on their own. Editorial heuristic, not a Google requirement.": "Dodaj jasne stwierdzenia faktów, definicje i liczby zrozumiałe bez kontekstu. Heurystyka redakcyjna, nie wymóg Google.",
+    "Pages Jev would rewrite or consolidate": "Strony, które Jev przepisałby lub scalił",
+    "Review each page against the suggested action. This is Jev's editorial judgment, not a search engine rule.": "Przejrzyj każdą stronę pod kątem sugerowanego działania. To ocena redakcyjna Jev, nie reguła wyszukiwarki.",
+    "Pages competing for the same searches": "Strony konkurujące o te same wyszukiwania", "Pages that may compete for the same searches": "Strony, które mogą konkurować o te same wyszukiwania",
+    "Decide one page per search need: merge, differentiate, or canonicalise the weaker page.": "Jedna strona na jedną potrzebę wyszukiwania: scal, zróżnicuj albo wskaż canonical ze słabszej strony.",
+    "Low Lighthouse mobile performance score": "Niski wynik wydajności Lighthouse na mobile",
+    "Reduce render-blocking resources, image weight and JavaScript; see the PageSpeed opportunities.": "Ogranicz zasoby blokujące renderowanie, wagę obrazów i JavaScript; zobacz możliwości w PageSpeed.",
+    "Core Web Vitals not in the good range for real mobile users": "Core Web Vitals poza dobrym zakresem dla realnych użytkowników mobile",
+    "Work through the PageSpeed opportunities for LCP, starting with the largest savings.": "Przejdź przez możliwości PageSpeed dla LCP, zaczynając od największych oszczędności.",
+    "Homepage response has no HSTS header": "Odpowiedź strony głównej nie ma nagłówka HSTS",
+    "Missing on the homepage response: x-content-type-options, referrer-policy, x-frame-options or CSP frame-ancestors": "Brakuje w odpowiedzi strony głównej: x-content-type-options, referrer-policy, x-frame-options lub CSP frame-ancestors",
+    "No link rel=icon on the homepage": "Brak link rel=icon na stronie głównej",
+    "Relevant keywords close to page one": "Trafne frazy blisko pierwszej strony wyników",
+    "Strengthen the ranking page for each keyword: answer the search more fully, add internal links to it and tighten its title.": "Wzmocnij stronę rankującą na każdą frazę: pełniej odpowiedz na zapytanie, dodaj do niej linki wewnętrzne i doprecyzuj tytuł.",
+    "Relevant keywords an existing page could win": "Trafne frazy, które może zdobyć istniejąca strona",
+    "Expand the named page to cover each keyword's search need, then link to it from related pages.": "Rozbuduj wskazaną stronę pod potrzebę każdej frazy, a potem podlinkuj ją z powiązanych stron.",
+    "Relevant keywords with no page to rank": "Trafne frazy bez strony, która mogłaby rankować",
+    "Plan one page per distinct search need; start with the highest volume, lowest difficulty keywords.": "Zaplanuj jedną stronę na każdą odrębną potrzebę; zacznij od fraz o największym wolumenie i najniższej trudności.",
+    "Far fewer referring domains than sites ranking for the same keywords": "Dużo mniej domen linkujących niż u serwisów rankujących na te same frazy",
+    "Earn links from sites your audience already reads: original data, tools, guest expertise and partner pages.": "Zdobywaj linki z serwisów, które czyta Twoja grupa docelowa: własne dane, narzędzia, eksperckie teksty gościnne i strony partnerów.",
+    "Backlinks pointing at broken pages": "Backlinki prowadzące do niedziałających stron",
+    "Redirect each broken target to its closest live page so the links count again.": "Przekieruj każdy niedziałający adres na najbliższą działającą stronę, by linki znów się liczyły.",
+    "AI Overviews that do not cite the site": "AI Overviews, które nie cytują serwisu",
+    "Study who is cited today and make sure the page answers the search directly. Google states there are no extra requirements to appear in AI Overviews beyond normal Search eligibility.": "Sprawdź, kto jest dziś cytowany, i upewnij się, że strona odpowiada wprost na zapytanie. Google deklaruje, że AI Overviews nie mają dodatkowych wymagań poza zwykłą kwalifikacją do wyszukiwarki.",
+})
+
+# ---------------------------------------------------------------- longer explanatory copy
+add({
+    "A live crawl of the site, checked by rules, judged by Jev, scored by code and explained in plain language.": "Crawl serwisu na żywo, sprawdzony regułami, oceniony przez Jev, policzony przez kod i opisany prostym językiem.",
+    "A source finds, code decides, Jev judges, Claude writes": "Źródło znajduje, kod rozstrzyga, Jev ocenia, Claude opisuje",
+    "A source finds, code decides, Jev judges, Claude writes. Code crawls, counts and scores. Jev (TypeSafe's System One model) answers narrow typed questions about meaning, with probabilities. Missing data is shown as missing.": "Źródło znajduje, kod rozstrzyga, Jev ocenia, Claude opisuje. Kod crawluje, liczy i punktuje. Jev (model System One od TypeSafe) odpowiada na wąskie, typowane pytania o znaczenie, z prawdopodobieństwami. Brakujące dane są pokazane jako brakujące.",
+    "Add findings that the evidence does not show": "Dodawać ustaleń, których nie pokazują dowody",
+    "Code scores and ranks every action; the narrative is written from the evidence.": "Kod punktuje i szereguje każde działanie; opis powstaje na podstawie dowodów.",
+    "Crawl (code) -> rules (code) -> Jev typed judgments -> PageSpeed Insights -> scoring and ranking (code) -> narrative (lead agent).": "Crawl (kod) -> reguły (kod) -> typowane oceny Jev -> PageSpeed Insights -> punktacja i ranking (kod) -> opis (główny agent).",
+    "Each dot is one action; labelled dots are fix-first or high impact. Colour shows priority.": "Każda kropka to jedno działanie; podpisane kropki to działania do naprawy najpierw lub o dużym wpływie. Kolor oznacza priorytet.",
+    "Each page placed by how important Jev judged it to the business and how good its content is (mean of helpfulness, specificity and trust). Pages in the shaded corner matter and are weak: improving them is likely to pay back first.": "Każda strona umieszczona według tego, jak ważna jest dla biznesu w ocenie Jev i jak dobra jest jej treść (średnia przydatności, konkretności i zaufania). Strony w zacienionym rogu są ważne i słabe: ich poprawa prawdopodobnie zwróci się najszybciej.",
+    "Each stage does only what it is good at. Anything a count, a status code or a string match can decide is decided by code. Jev, TypeSafe's System One model, answers narrow typed questions about meaning, with probabilities. Nothing is invented to fill a gap: missing data is shown as missing.": "Każdy etap robi tylko to, w czym jest dobry. Wszystko, co da się rozstrzygnąć liczeniem, kodem statusu lub dopasowaniem tekstu, rozstrzyga kod. Jev, model System One od TypeSafe, odpowiada na wąskie, typowane pytania o znaczenie, z prawdopodobieństwami. Luki nie są niczym wypełniane: brakujące dane są pokazane jako brakujące.",
+    "Every judgment in this report came from these requests.": "Każda ocena w tym raporcie pochodzi z tych zapytań.",
+    "Impact combines severity, how many pages are affected and how important Jev judged those pages to be. Effort is a planning estimate, not a quote.": "Wpływ łączy wagę problemu, liczbę stron, których dotyczy, i to, jak ważne są te strony w ocenie Jev. Wysiłek to szacunek do planowania, nie wycena.",
+    "Lighthouse lab scores for the homepage (one synthetic load each)": "Wyniki laboratoryjne Lighthouse dla strony głównej (po jednym syntetycznym ładowaniu)",
+    "Live fetch from the homepage: robots.txt, sitemaps, internal links, JavaScript rendering when needed.": "Pobieranie na żywo od strony głównej: robots.txt, sitemapy, linki wewnętrzne, renderowanie JavaScriptu, gdy trzeba.",
+    "No Search Console, analytics, backlink or keyword data was used (run with --full for DataForSEO).": "Nie użyto danych z Search Console, analityki, backlinków ani fraz (uruchom z --full dla DataForSEO).",
+    "No Search Console, analytics, backlink or keyword data was used (run with --full for DataForSEO). Nothing here measures rankings, traffic or revenue.": "Nie użyto danych z Search Console, analityki, backlinków ani fraz (uruchom z --full dla DataForSEO). Nic tutaj nie mierzy pozycji, ruchu ani przychodu.",
+    "No Search Console, analytics, backlink or keyword volume data. Scores are an internal rubric, not ranking or traffic predictions. Jev answers are model judgments, not measurements.": "Bez danych z Search Console, analityki, backlinków i wolumenów fraz. Wyniki to wewnętrzna skala, nie prognoza pozycji ani ruchu. Odpowiedzi Jev to oceny modelu, nie pomiary.",
+    "Not assessed: run with --full (DataForSEO)": "Nie oceniono: uruchom z --full (DataForSEO)",
+    "Overall: weighted mean of scored areas; unscored areas are excluded, never zero.": "Ogółem: średnia ważona ocenionych obszarów; nieocenione obszary są pomijane, nigdy nie liczą się jako zero.",
+    "Page type, search intent, importance, helpfulness, specificity, trust, citability, title and meta fit, competing page pairs": "Typ strony, intencja wyszukiwania, waga, przydatność, konkretność, zaufanie, cytowalność, trafność tytułu i meta, pary konkurujących stron",
+    "PageSpeed Insights: real-user Core Web Vitals and Lighthouse lab scores.": "PageSpeed Insights: Core Web Vitals od realnych użytkowników i wyniki laboratoryjne Lighthouse.",
+    "PageSpeed lab scores vary between runs. Field data exists only for sites with enough Chrome traffic.": "Wyniki laboratoryjne PageSpeed różnią się między pomiarami. Dane terenowe istnieją tylko dla serwisów z wystarczającym ruchem z Chrome.",
+    "Pages laid out by clicks from the homepage. Bigger dots are pages Jev judged more important; the outer dashed ring holds pages that no crawled page links to.": "Strony ułożone według liczby kliknięć od strony głównej. Większe kropki to strony ważniejsze według Jev; zewnętrzny przerywany pierścień to strony, do których nie linkuje żadna zbadana strona.",
+    "Predict rankings or traffic, invent data, grant permission to act": "Przewidywać pozycje ani ruch, zmyślać danych, dawać zgody na działania",
+    "Rules marked heuristic are editorial conventions, not search engine requirements.": "Reguły oznaczone jako heurystyka to konwencje redakcyjne, nie wymogi wyszukiwarek.",
+    "Scores are an internal rubric for prioritising work, not a prediction of rankings or traffic. Method, formulas and sources are in the appendix.": "Wyniki to wewnętrzna skala do ustalania priorytetów pracy, nie prognoza pozycji ani ruchu. Metoda, wzory i źródła są w aneksie.",
+    "Scores rank work; they do not predict rankings or traffic.": "Wyniki porządkują pracę; nie przewidują pozycji ani ruchu.",
+    "Site-level questions asked over the homepage and the list of page titles. Each card shows Jev's typed answer and the probability it gave each option.": "Pytania o cały serwis, zadane na podstawie strony głównej i listy tytułów stron. Każda karta pokazuje typowaną odpowiedź Jev i prawdopodobieństwo każdej opcji.",
+    "Stand in for every page or device": "Zastępować wszystkich stron ani urządzeń",
+    "The Actions sheet Status column is the only editable status. Summary counts update from it. PDF and Markdown are dated snapshots.": "Kolumna Status w arkuszu Działania to jedyne miejsce edycji statusu. Liczniki w podsumowaniu aktualizują się z niej. PDF i Markdown to migawki z datą.",
+    "The summary and plan, citing action IDs": "Podsumowanie i plan z odwołaniami do ID działań",
+    "Typed Choice, Score and Noul questions, batched per page, with probabilities kept.": "Typowane pytania Choice, Score i Noul, grupowane per strona, z zachowaniem prawdopodobieństw.",
+    "auto; homepage needed JavaScript rendering: no": "auto; strona główna wymagała renderowania JavaScriptu: nie",
+    "page cap reached: larger sites were sampled": "osiągnięto limit stron: większy serwis zbadano na próbce",
+    "overall score, grade B": "wynik ogólny, ocena B",
+    "yes · HTTP redirects to HTTPS: yes": "tak · HTTP przekierowuje na HTTPS: tak",
+    "· Googlebot allowed · Bingbot allowed": "· Googlebot dozwolony · Bingbot dozwolony",
+    "**Contents:** [Executive summary](#executive-summary) · [How this audit was made](#how-this-audit-was-made) · [Priority actions](#priority-actions) · [What the crawl found](#what-the-crawl-found) · [How Jev reads the site](#how-jev-reads-the-site) · [Findings by area](#findings-by-area) · [Robots access](#robots-access) · [Page inventory](#page-inventory) · [Method and limits](#method-and-limits)":
+        "**Spis treści:** [Podsumowanie](#podsumowanie) · [Jak powstał ten audyt](#jak-powstał-ten-audyt) · [Działania priorytetowe](#działania-priorytetowe) · [Co znalazł crawl](#co-znalazł-crawl) · [Jak Jev odczytuje serwis](#jak-jev-odczytuje-serwis) · [Ustalenia według obszarów](#ustalenia-według-obszarów) · [Dostęp robotów](#dostęp-robotów) · [Spis stron](#spis-stron) · [Metoda i ograniczenia](#metoda-i-ograniczenia)",
+    "Written by: Automatic summary (no lead-agent narrative was written). A lead agent can replace this with a written narrative by adding narrative.json and re-rendering.": "Autor: automatyczne podsumowanie (brak opisu głównego agenta).",
+    "_Written by: Automatic summary (no lead-agent narrative was written)._": "_Autor: automatyczne podsumowanie._",
+    "Automatic summary (no lead-agent narrative was written)": "Automatyczne podsumowanie",
+})
+
+# ---------------------------------------------------------------- patterns (order matters: specific first)
+N = r"[\d.,]+"
+P = []
+
+
+def pat(rx, rep):
+    P.append([rx, rep])
+
+
+MONTHS = {"January": "stycznia", "February": "lutego", "March": "marca", "April": "kwietnia", "May": "maja", "June": "czerwca", "July": "lipca",
+          "August": "sierpnia", "September": "września", "October": "października", "November": "listopada", "December": "grudnia"}
+for en, pl in MONTHS.items():
+    pat(rf"(?P<d>\d{{1,2}}) {en} (?P<y>\d{{4}})", "{d} " + pl + " {y}")
+
+pat(r"(?P<id>JEV-\d{3})(?P<sep> · |: | )(?P<t_r>.+)", "{id}{sep}{t_r}")
+pat(r"(?P<id>JEV-\d{3}) ·", "{id} ·")
+pat(r"Evidence: (?P<t_r>.+)", "Dowody: {t_r}")
+pat(r"Fix: (?P<t_r>.+?) \(\[source\]\((?P<u>[^)]+)\)\)", "Poprawka: {t_r} ([źródło]({u}))")
+pat(r"Fix: (?P<t_r>.+)", "Poprawka: {t_r}")
+pat(r"(?P<n>\d+) affected · (?P<t_r>.+)", "dotyczy: {n} · {t_r}")
+pat(r"(?P<n>\d+) affected", "dotyczy: {n}")
+pat(r"(?P<n>\d+) to verify", "do sprawdzenia: {n}")
+pat(r"URLs: (?P<u>.+) and (?P<n>\d+) more", "Adresy: {u} i {n} więcej")
+pat(r"URLs: (?P<u>.+)", "Adresy: {u}")
+pat(r"URLs · (?P<n>\d+) requests", "adresów · {n} zapytań")
+pat(r"(?P<t_a>.+) \(quick win\)", "{t_a} (szybka poprawka)")
+pat(r"(?P<t_a>[A-Za-z][\w &,;'-]+) \((?P<n>\d+)\)", "{t_a} ({n})")
+pat(r"\*\*(?P<id>JEV-\d{3}) · (?P<t_a>.+?)\*\* (?P<t_tags>`.*)", "**{id} · {t_a}** {t_tags}")
+pat(r"`(?P<t_a>[^`]+)` (?P<t_r>`.*)", "`{t_a}` {t_r}")
+pat(r"`(?P<t_a>[^`]+)`", "`{t_a}`")
+pat(r"\*\*(?P<t_q>[^*]+\?)\*\* (?P<t_r>.+)", "**{t_q}** {t_r}")
+pat(r"(?P<t_a>[a-z][a-z ]+), confidence (?P<c>" + N + r") _\(verify\)_", "{t_a}, pewność {c} _(do sprawdzenia)_")
+pat(r"(?P<a>" + N + r"), confidence (?P<c>" + N + ")", "{a}, pewność {c}")
+pat(r"confidence (?P<c>" + N + ")", "pewność {c}")
+pat(r"Impact (?P<i>\d+) · (?P<t_e>[A-Za-z ]+) · (?P<n>\d+) pages?", "Wpływ {i} · {t_e} · stron: {n}")
+pat(r"(?P<t_a>[a-z_ ]+): (?P<x>" + N + r"), (?P<t_r>.+)", "{t_a}: {x}, {t_r}")
+pat(r"(?P<t_a>[a-z_ ]+): (?P<x>" + N + ")", "{t_a}: {x}")
+pat(r"(?P<t_a>[a-z_ ]+)  (?P<x>\d+)", "{t_a}  {x}")
+pat(r"(?P<x>" + N + r"(?:ms|s)?)  (?P<t_a>good|needs improvement|poor)", "{x}  {t_a}")
+pat(r"AI bot: (?P<b>.+)", "Bot AI: {b}")
+pat(r"Search bot: (?P<b>.+)", "Bot wyszukiwarki: {b}")
+pat(r"(?P<n>\d+)k\+", "{n} tys.+")
+pat(r"title overlap (?P<x>" + N + ")", "pokrycie tytułów {x}")
+
+# evidence templates from checks.py and score.py
+pat(r"Jev (?P<t_m>.+?) averaged (?P<a>" + N + r") \(0 worst, 1 best\) on (?P<n>\d+) pages?(?P<rest>: .+)?", "Jev, średnia ({t_m}): {a} (0 najgorzej, 1 najlepiej), stron: {n}{rest}")
+add({"P(clear next step)": "P(jasny następny krok)", "title fit": "trafność tytułu", "meta description fit": "trafność opisu meta",
+     "P(H1 states the topic)": "P(H1 nazywa temat)", "P(opens with the point)": "P(zaczyna od sedna)", "citability": "cytowalność"})
+pat(r"Jev value proposition (?P<a>" + N + r") \(confidence (?P<c>" + N + r")\)", "Jev: czytelność oferty {a} (pewność {c})")
+pat(r"Jev P\(homepage states who, what and where\) (?P<a>" + N + ")", "Jev: P(strona główna mówi kto, co i gdzie) {a}")
+pat(r"Serves a local area P\(yes\) (?P<a>" + N + r"); homepage schema: (?P<s>.+)", "Obsługa lokalna P(tak) {a}; schema strony głównej: {s}")
+pat(r"P\(yes\) (?P<a>" + N + ")", "P(tak) {a}")
+pat(r"(?P<n>\d+) pages? carry noindex", "Stron z noindex: {n}")
+pat(r"(?P<n>\d+) of (?P<m>\d+) pages", "{n} z {m} stron")
+pat(r"(?P<n>\d+) indexable pages?", "Indeksowalnych stron: {n}")
+pat(r"(?P<n>\d+) pages?", "Stron: {n}")
+pat(r"(?P<n>\d+) pages?, depth (?P<d>\d+) ·", "Stron: {n}, głębokość {d} ·")
+pat(r"(?P<n>\d+) crawled indexable pages? (?:is|are) not listed", "Zbadane indeksowalne strony spoza sitemapy: {n}")
+pat(r"(?P<n>\d+) pages? skips? a heading level", "Stron z pominiętym poziomem nagłówka: {n}")
+pat(r"(?P<n>\d+) pages? lacks? og:title or og:image", "Stron bez og:title lub og:image: {n}")
+pat(r"(?P<n>\d+) pages? with hreflang but no self-reference", "Stron z hreflang bez odwołania do siebie: {n}")
+pat(r"(?P<n>\d+) images? without explicit size", "Obrazów bez podanego rozmiaru: {n}")
+pat(r"(?P<n>\d+) images? without alt across (?P<m>\d+) pages?", "Obrazów bez alt: {n} na {m} stronach")
+pat(r"(?P<n>\d+) titles? shared by several pages", "Tytułów powtórzonych na kilku stronach: {n}")
+pat(r"(?P<n>\d+) descriptions? shared by several pages", "Opisów powtórzonych na kilku stronach: {n}")
+pat(r"(?P<n>\d+) groups? of pages with identical main text", "Grup stron z identyczną treścią: {n}")
+pat(r"(?P<n>\d+) pages? deeper than three clicks", "Stron głębiej niż trzy kliknięcia: {n}")
+pat(r"(?P<n>\d+) pages? had under 60 words in raw HTML and more after rendering", "Stron z mniej niż 60 słowami w surowym HTML i większą liczbą po renderowaniu: {n}")
+pat(r"(?P<n>\d+) of the crawled sitemap URLs are not final indexable pages", "Adresy z sitemapy, które nie są docelowymi indeksowalnymi stronami: {n}")
+pat(r"(?P<n>\d+) of (?P<m>\d+) sampled outbound links", "{n} z {m} sprawdzonych linków wychodzących")
+pat(r"(?P<n>\d+) sitemap pages received no internal links from the crawled pages: (?P<r>.+)", "Stron z sitemapy bez linków wewnętrznych: {n}: {r}")
+pat(r"(?P<n>\d+) broken targets: (?P<r>.+)", "Niedziałające cele: {n}: {r}")
+pat(r"FAQPage markup on (?P<n>\d+) pages?", "Znaczniki FAQPage na stronach: {n}")
+pat(r"(?P<n>\d+) chars(?P<t_r>; .+)?", "{n} znaków{t_r}")
+pat(r"(?P<r>.+?: \d+ (?:words|ms|KB).*)", "{r}")  # placeholder, refined below
+P.pop()
+pat(r"(?P<a>.+?) \((?P<t_b>rewrite|merge_or_remove|keep_or_improve)\)(?P<t_r>; .+)?", "{a} ({t_b}){t_r}")
+pat(r"; (?P<a>.+?) \((?P<t_b>rewrite|merge_or_remove|keep_or_improve)\)(?P<t_r>; .+)?", "; {a} ({t_b}){t_r}")
+pat(r"(?P<n>\d+) pages?: (?P<t_r>.+)", "Stron: {n}: {t_r}")
+pat(r"(?P<r>.*?)(?P<n>\d+) words(?P<t_rest>; .+)?", "{r}{n} słów{t_rest}")
+pat(r"; (?P<r>.*?)(?P<n>\d+) words(?P<t_rest>; .+)?", "; {r}{n} słów{t_rest}")
+pat(r"(?P<a>.+?) and (?P<n>\d+) more", "{a} i {n} więcej")
+pat(r"Blocked at /: (?P<r>.+)", "Zablokowane dla /: {r}")
+pat(r"(?P<l>.+) answered (?P<s>.+)", "{l} odpowiedział {s}")
+pat(r"robots.txt returned (?P<s>.+)", "robots.txt zwrócił {s}")
+pat(r"(?P<h>.+) answers without redirecting to the preferred host", "{h} odpowiada bez przekierowania na preferowany host")
+pat(r"(?P<a>.+) \((?P<n>\d+) hops\)", "{a} (skoki: {n})")
+pat(r"(?P<a>.+) links to (?P<b>.+) \(redirects to (?P<c>.+)\)", "{a} linkuje do {b} (przekierowuje na {c})")
+
+# report copy with numbers
+pat(r"(?P<n>\d+)% Lighthouse mobile performance, (?P<m>\d+)% crawl observations", "{n}% wydajność Lighthouse mobile, {m}% obserwacje z crawla")
+pat(r"(?P<n>\d+)% Jev judgment \(citability, answer-first, entity clarity\), (?P<m>\d+)% rules; editorial heuristics, since Google states no special optimization is required for AI features",
+    "{n}% ocena Jev (cytowalność, odpowiedź na początku, jasność podmiotu), {m}% reguły; heurystyki redakcyjne, bo Google deklaruje, że funkcje AI nie wymagają specjalnej optymalizacji")
+pat(r"(?P<n>\d+)% Jev judgment \(helpfulness, specificity, trust\), (?P<m>\d+)% rules", "{n}% ocena Jev (przydatność, konkretność, zaufanie), {m}% reguły")
+pat(r"(?P<n>\d+) deterministic checks tied to Google Search Central and web standards\.", "{n} deterministycznych kontroli opartych na Google Search Central i standardach sieciowych.")
+pat(r"(?P<n>\d+) URLs in (?P<m>\d+) file\(s\)", "{n} adresów, plików: {m}")
+pat(r"(?P<n>\d+) areas, one score", "{n} obszarów, jeden wynik")
+pat(r"HTML pages \((?P<n>\d+)\)", "Strony HTML ({n})")
+pat(r"(?P<t_a>.+) scores (?P<n>\d+)\.", "{t_a}: {n}.")
+pat(r"Answer \((?P<a>\d+) to (?P<b>\d+) or option\)", "Odpowiedź ({a}–{b} lub opcja)")
+pat(r"Choice and Score decisive at confidence >= (?P<a>" + N + r"); Noul decisive at P\(yes\) >= (?P<b>" + N + r") or <= (?P<c>" + N + r"); everything else needs a human check\.",
+    "Choice i Score rozstrzygające przy pewności >= {a}; Noul rozstrzygające przy P(tak) >= {b} lub <= {c}; reszta wymaga sprawdzenia przez człowieka.")
+pat(r"A Choice or Score answer is decisive at confidence (?P<a>" + N + r") or above; a yes or no answer is decisive at P\(yes\) of (?P<b>" + N + r") or more, or (?P<c>" + N + r") or less\. Everything else is marked for a human check and flagged on its action\.",
+    "Odpowiedź Choice lub Score jest rozstrzygająca przy pewności {a} lub wyższej; odpowiedź tak/nie przy P(tak) {b} lub więcej albo {c} lub mniej. Wszystko inne jest oznaczone do sprawdzenia przez człowieka i zaznaczone przy działaniu.")
+pat(r"Impact: severity weight × \((?P<a>" + N + r") \+ (?P<b>" + N + r") × reach\) × \((?P<c>" + N + r") \+ (?P<d>" + N + r") × highest Jev importance of affected pages\), scaled to (?P<e>\d+)\.",
+    "Wpływ: waga problemu × ({a} + {b} × zasięg) × ({c} + {d} × najwyższa waga Jev wśród stron, których dotyczy), przeskalowane do {e}.")
+pat(r"= severity weight \(critical (?P<a>\d+), high (?P<b>\d+), medium (?P<c>\d+), low (?P<d>\d+)\) × \((?P<e>" + N + r") \+ (?P<f>" + N + r") × reach\) × \((?P<g>" + N + r") \+ (?P<h>" + N + r") × highest Jev importance among affected pages\), scaled so the largest is (?P<i>\d+)\.",
+    "= waga problemu (krytyczna {a}, wysoka {b}, średnia {c}, niska {d}) × ({e} + {f} × zasięg) × ({g} + {h} × najwyższa waga Jev wśród stron, których dotyczy), przeskalowane tak, by największy wynosił {i}.")
+pat(r"(?P<pre>Area score: )?(?P<a>\d+) minus, per finding, severity amount \(critical (?P<b>\d+), high (?P<c>\d+), medium (?P<d>\d+), low (?P<e>\d+)\) (?:x|×) \((?P<f>" + N + r") \+ (?P<g>" + N + r") (?:x|×) share of pages affected\)\. Content and AI readiness blend (?P<h>\d+)% Jev judgment (?:and|with) (?P<i>\d+)% rules[.;] (?:Performance|performance) blends (?P<j>\d+)% Lighthouse mobile (?:and|with) (?P<k>\d+)% crawl observations\.",
+    "Wynik obszaru: {a} minus, za każde ustalenie, kara zależna od wagi (krytyczna {b}, wysoka {c}, średnia {d}, niska {e}) × ({f} + {g} × udział stron, których dotyczy). Jakość treści i gotowość na AI łączą {h}% oceny Jev z {i}% reguł. Wydajność łączy {j}% Lighthouse mobile z {k}% obserwacji z crawla.")
+pat(r"starts at (?P<a>\d+) and subtracts, per finding, a severity amount \(critical (?P<b>\d+), high (?P<c>\d+), medium (?P<d>\d+), low (?P<e>\d+), info (?P<f>\d+)\) times \((?P<g>" + N + r") \+ (?P<h>" + N + r") × share of pages affected\)\. Site-wide findings count as full share\. Content quality and AI search readiness blend (?P<i>\d+)% importance-weighted Jev judgments with (?P<j>\d+)% rules\. Performance blends (?P<k>\d+)% Lighthouse mobile performance with (?P<l>\d+)% crawl observations\.",
+    "zaczyna od {a} i odejmuje, za każde ustalenie, karę zależną od wagi (krytyczna {b}, wysoka {c}, średnia {d}, niska {e}, info {f}) razy ({g} + {h} × udział stron, których dotyczy). Ustalenia dla całego serwisu liczą się w pełnym udziale. Jakość treści i gotowość na AI łączą {i}% ocen Jev ważonych wagą stron z {j}% reguł. Wydajność łączy {k}% wydajności Lighthouse mobile z {l}% obserwacji z crawla.")
+pat(r"is the weighted mean of scored areas \(weights in the scorecard\)\. Unscored areas are left out, never counted as zero\. A blocked site is capped at (?P<a>\d+); a site without reliable HTTPS at (?P<b>\d+)\.",
+    "to średnia ważona ocenionych obszarów (wagi w karcie wyników). Nieocenione obszary są pomijane, nigdy nie liczą się jako zero. Zablokowany serwis ma limit {a}; serwis bez niezawodnego HTTPS — {b}.")
+pat(r"Code shortlisted (?P<a>\d+) pairs with overlapping titles and headings; Jev judged whether a searcher would treat them as substitutes\. The most likely competitors are shown; (?P<b>" + N + r") or more becomes an action\.",
+    "Kod wybrał {a} par ze wspólnymi słowami w tytułach i nagłówkach; Jev ocenił, czy szukający uznałby je za zamienniki. Pokazano najbardziej prawdopodobnych konkurentów; od {b} wzwyż powstaje działanie.")
+pat(r"Every Score and yes or no answer on a (?P<a>\d+) to (?P<b>\d+) scale, for the pages Jev judged most important\. Darker is better\. A dash means the question did not apply, for example no meta description to judge\.",
+    "Każda odpowiedź Score i tak/nie w skali {a}–{b}, dla stron najważniejszych według Jev. Ciemniej znaczy lepiej. Myślnik oznacza, że pytanie nie miało zastosowania, np. brak opisu meta do oceny.")
+pat(r"Model requested (?P<a>\S+), returned (?P<b>\S+)\. (?P<c>\d+) requests, (?P<d>\d+) input tokens, (?P<e>\d+) failed, (?P<f>\d+) skipped by the budget cap\. Cost (?P<g>\$[\d.]+) at (?P<h>\$[\d.]+) per million input tokens \(output is free\)\. Page text sent to Jev is capped at (?P<i>[\d,]+) characters\. Jev answers are model judgments, not measurements; decisive does not mean correct\.",
+    "Zamówiony model {a}, zwrócony {b}. Zapytania: {c}, tokeny wejściowe: {d}, błędy: {e}, pominięte przez limit budżetu: {f}. Koszt {g} przy {h} za milion tokenów wejściowych (wyjście bezpłatne). Tekst strony wysyłany do Jev jest przycinany do {i} znaków. Odpowiedzi Jev to oceny modelu, nie pomiary; rozstrzygająca nie znaczy poprawna.")
+pat(r"The crawl covered (?P<a>\d+) URLs, stopping at the page cap, so site-wide counts describe a sample\. Orphan and depth findings only see links on crawled pages\.",
+    "Crawl objął {a} adresów i zatrzymał się na limicie stron, więc liczby dla całego serwisu opisują próbkę. Ustalenia o stronach osieroconych i głębokości widzą tylko linki na zbadanych stronach.")
+pat(r"The crawl covered (?P<a>\d+) URLs\. (?P<t_r>.+)", "Crawl objął {a} adresów. {t_r}")
+pat(r"Audited (?P<d>\S+) · (?P<a>\d+) URLs crawled · (?P<b>\d+) HTML pages · (?P<c>\d+) Jev judgments · Jev cost (?P<e>\$[\d.]+)",
+    "Audyt z {d} · zbadane adresy: {a} · strony HTML: {b} · oceny Jev: {c} · koszt Jev {e}")
+pat(r"Audited (?P<d>\S+) · (?P<a>\d+) URLs crawled · (?P<b>\d+) HTML pages · Jev (?P<j>\S+)", "Audyt z {d} · zbadane adresy: {a} · strony HTML: {b} · Jev {j}")
+pat(r"Generated (?P<d>\S+ \S+) by jev-seo (?P<v>\S+)\. Crawl started (?P<s>\S+)\.", "Wygenerowano {d} przez jev-seo {v}. Crawl rozpoczęty {s}.")
+pat(r"judgments · (?P<n>\d+) requests · (?P<c>\$[\d.]+)", "ocen · zapytań: {n} · {c}")
+pat(r"\*\*Overall score: (?P<a>\d+)/100 \(grade (?P<g>\w)\)\*\*(?P<r>.*)", "**Wynik ogólny: {a}/100 (ocena {g})**{r}")
+pat(r"Overall score: (?P<a>\d+)/100 \(grade (?P<g>\w)\)", "Wynik ogólny: {a}/100 (ocena {g})")
+pat(r"(?P<a>\d+) out of 100", "{a} na 100")
+pat(r"grade (?P<g>[A-F])", "ocena {g}")
+pat(r"Capped at (?P<a>\d+): the homepage or whole site is blocked from search", "Limit {a}: strona główna lub cały serwis jest zablokowany dla wyszukiwarek")
+pat(r"Capped at (?P<a>\d+): the site is not reliably served over HTTPS", "Limit {a}: serwis nie działa niezawodnie po HTTPS")
+
+add({
+    "Core Web Vitals, real Chrome users (75th percentile, whole origin)": "Core Web Vitals, realni użytkownicy Chrome (75. percentyl, cała domena)",
+    "Core Web Vitals, real Chrome users (75th percentile, this page)": "Core Web Vitals, realni użytkownicy Chrome (75. percentyl, ta strona)",
+    "Decisive answers": "Odpowiedzi rozstrzygające", "H1 count": "Liczba H1", "HTML pages": "Strony HTML", "INP p75 ms": "INP p75 ms",
+    "Top probabilities": "Najwyższe prawdopodobieństwa", "poor": "słaby", "h1": "h1",
+    "Main content words per page. The 150 mark is a warning sign, not a ranking factor.": "Słowa treści głównej na stronę. Próg 150 to sygnał ostrzegawczy, nie czynnik rankingowy.",
+    "Title length. The 65 mark is a display convention, not a rule.": "Długość tytułu. Próg 65 to konwencja wyświetlania, nie reguła.",
+    "Weighted mean of scored areas; unscored areas excluded, never zero. Blocked site capped at 20; no reliable HTTPS capped at 60.": "Średnia ważona ocenionych obszarów; nieocenione pomijane, nigdy zero. Zablokowany serwis: limit 20; brak niezawodnego HTTPS: limit 60.",
+    "P1 for critical, or high with impact 40 or more; P2 for impact 30 or more or any high; P3 otherwise.": "P1 dla krytycznych lub wysokich z wpływem 40+; P2 dla wpływu 30+ lub każdej wysokiej; P3 w pozostałych przypadkach.",
+    "impact 35 or more with effort of hours.": "wpływ 35+ przy wysiłku rzędu kilku godzin.",
+    "Severity weight (10/6/3/1) x (0.6 + 0.4 x reach) x (0.6 + 0.8 x max Jev importance of affected pages), scaled to 100.": "Waga problemu (10/6/3/1) × (0,6 + 0,4 × zasięg) × (0,6 + 0,8 × maks. waga Jev stron, których dotyczy), przeskalowane do 100.",
+})
+pat(r"Jev answers are decisive at confidence (?P<a>" + N + r") \(Choice, Score\) or P\(yes\) at least (?P<b>" + N + r") or at most (?P<c>" + N + r") \(Noul\)\. Others are flagged to verify\.",
+    "Odpowiedzi Jev są rozstrzygające przy pewności {a} (Choice, Score) albo P(tak) co najmniej {b} lub najwyżej {c} (Noul). Pozostałe oznaczono do sprawdzenia.")
+pat(r"Jev: model (?P<m>\S+), (?P<a>\d+) requests, (?P<b>\d+) input tokens, (?P<c>\d+) failed, cost (?P<d>\$[\d.]+)\.", "Jev: model {m}, zapytania: {a}, tokeny wejściowe: {b}, błędy: {c}, koszt {d}.")
+pat(r"(?P<m>LCP|INP|CLS) p75 (?P<v>[\d.]+(?:ms)?) \((?P<t_r>[a-z ]+)\) \((?P<t_l>origin|page)-level field data\)", "{m} p75 {v} ({t_r}) (dane terenowe: {t_l})")
+add({"origin": "domena", "page": "strona"})
+pat(r"Lighthouse mobile performance (?P<a>\d+)/100 \(one synthetic load\)", "Wydajność Lighthouse mobile {a}/100 (jedno syntetyczne ładowanie)")
+pat(r"(?P<p>P[123]) (?P<t_a>Fix first|Plan next|When convenient)", "{p} {t_a}")
+pat(r"Who may crawl the site \(robots\.txt, checked for (?P<n>\d+) user agents\)", "Kto może crawlować serwis (robots.txt, sprawdzono user agentów: {n})")
+pat(r"_Generated by jev-seo (?P<v>\S+)\._", "_Wygenerowano przez jev-seo {v}._")
+pat(r"grade (?P<g>[A-F])  ·  out of 100", "ocena {g}  ·  na 100")
+pat(r"· (?P<a>\d+) URLs crawled · (?P<b>\d+) Jev judgments · Jev cost (?P<c>\$[\d.]+)", "· zbadane adresy: {a} · oceny Jev: {b} · koszt Jev {c}")
+pat(r"Expecting value: line (?P<a>\d+) column (?P<b>\d+) \(char (?P<c>\d+)\)(?P<t_r>; .+)?", "Oczekiwano wartości: linia {a}, kolumna {b} (znak {c}){t_r}")
+pat(r"; (?P<t_a>.+)", "; {t_a}")
+add({"·  Jev SEO audit": "·  Audyt SEO Jev", "source": "źródło"})
+pat(r"(?P<a>.*?)\+(?P<n>\d+) more", "{a}+{n} więcej")
+
+pat(r"(?P<n>\d+) page pairs judged to compete \(P\(yes\) at least (?P<x>[\d.]+)\)", "Par stron uznanych za konkurujące: {n} (P(tak) co najmniej {x})")
+pat(r"_?Written by: (?P<a>.+?)\.?_?", "Autor: {a}.")
+add({"Core Web Vitals field data": "Dane terenowe Core Web Vitals", "From discovered URLs to Jev judgments": "Od wykrytych adresów do ocen Jev",
+     "How sure Jev was": "Jak pewny był Jev", "Impact versus effort": "Wpływ a wysiłek", "Importance versus judged quality": "Waga strony a oceniona jakość",
+     "Jev page quality heatmap": "Mapa ciepła jakości stron według Jev", "Site structure by click depth": "Struktura serwisu według głębokości kliknięć"})
+pat(r"Jev SEO audit: (?P<d>\S+)", "Audyt SEO Jev: {d}")
+pat(r"SEO audit: (?P<d>\S+)", "Audyt SEO: {d}")
+pat(r"What matters most on (?P<d>\S+)", "Co jest najważniejsze na {d}")
+# fallback: "Known title (evidence)"
+pat(r"(?P<t_a>[A-Z][^()]+?) \((?P<t_b>.+)\)", "{t_a} ({t_b})")
+
+json.dump({"text": T, "patterns": P}, open(sys.argv[1], "w"), ensure_ascii=False, indent=1)
+print(len(T), "strings,", len(P), "patterns")

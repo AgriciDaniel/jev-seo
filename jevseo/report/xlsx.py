@@ -64,7 +64,7 @@ def link(cell, url: str) -> None:
         cell.font = Font(name="Inter", size=10, color="A83A8C", underline="single")
 
 
-def write_xlsx(vm: dict, path: Path) -> Path:
+def write_xlsx(vm: dict, path: Path, translate=lambda wb: None) -> Path:
     d = vm["d"]
     s = vm["scores"]
     wb = Workbook()
@@ -335,5 +335,6 @@ def write_xlsx(vm: dict, path: Path) -> Path:
         sheet.sheet_properties.tabColor = JEV if sheet.title in ("Summary", "Actions", "Jev judgments") else "C3C2B7"
     # Formula cells carry no stored values; ask the spreadsheet app to calculate on open.
     wb.calculation.fullCalcOnLoad = True
+    translate(wb)
     wb.save(path)
     return path

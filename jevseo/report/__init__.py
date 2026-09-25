@@ -11,6 +11,7 @@ from pathlib import Path
 from statistics import mean
 from urllib.parse import urlparse
 
+from jevseo.i18n import Translator
 from jevseo.report import charts
 
 PRIORITY_TEXT = {"P1": "Fix first", "P2": "Plan next", "P3": "When convenient"}
@@ -333,27 +334,32 @@ def view_model(d: dict, folder: Path) -> dict:
     }
 
 
-def build(folder: Path, formats: list[str], log=print) -> dict:
+def build(folder: Path, formats: list[str], log=print, lang: str = "en") -> dict:
     data = json.loads((folder / "audit.json").read_text())
+    tr = Translator(lang)
     log("building charts")
-    vm = view_model(data, folder)
+    with tr.charts():
+        vm = view_model(data, folder)
     written = {}
     if "pdf" in formats:
         from jevseo.report.pdf import write_pdf
 
         log("rendering PDF")
-        written["pdf"] = write_pdf(vm, folder / "report.pdf")
+        written["pdf"] = write_pdf(vm, folder / "report.pdf", tr.html)
     if "xlsx" in formats:
         from jevseo.report.xlsx import write_xlsx
 
         log("writing workbook")
-        written["xlsx"] = write_xlsx(vm, folder / "report.xlsx")
+        written["xlsx"] = write_xlsx(vm, folder / "report.xlsx", tr.workbook)
     if "md" in formats:
         from jevseo.report.md import write_md
 
         written["md"] = write_md(vm, folder / "report.md")
+        tr.md(written["md"])
     for k, v in written.items():
         log(f"{k}: {v}")
+    if tr.misses:
+        log(f"report language {lang}: {len(tr.misses)} strings passed through unchanged (mostly data: URLs, page titles, names)")
     for issue in vm["narrative"].get("effort_mismatches") or []:
         log(f"WARNING narrative effort mismatch: {issue}")
     if vm["narrative"].get("unverified_numbers"):
