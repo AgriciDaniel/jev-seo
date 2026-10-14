@@ -341,8 +341,8 @@ class Jev:
         self.budget = budget_usd
         self.log = log
         self.lock = threading.Lock()
-        self.rate = USD_PER_MTOK if self.key else CF_USD_PER_MTOK
-        self.ledger = {"model_requested": MODEL if self.key else CF_MODEL, "model_returned": None, "requests": 0, "failed": 0, "input_tokens": 0, "output_tokens": 0, "est_reserved_tokens": 0, "skipped_budget": 0, "errors": []}
+        self.rate = CF_USD_PER_MTOK if self.cf_url else USD_PER_MTOK  # owner prefers the CF-hosted Jev (billed to CF balance)
+        self.ledger = {"model_requested": CF_MODEL if self.cf_url else MODEL, "model_returned": None, "requests": 0, "failed": 0, "input_tokens": 0, "output_tokens": 0, "est_reserved_tokens": 0, "skipped_budget": 0, "errors": []}
 
     @property
     def available(self) -> bool:
@@ -381,13 +381,16 @@ class Jev:
                 return None
             self.ledger["est_reserved_tokens"] += est
         try:
-            if not self.key:  # Cloudflare backend
+            if self.cf_url:  # Cloudflare-hosted Jev preferred (owner decision); TypeSafe direct is the fallback
                 for attempt in range(3):
                     try:
                         return self._cf_answers(state, questions)
                     except Exception as err:  # noqa: BLE001
-                        if attempt == 2:
+                        if attempt == 2 and not self.key:
                             raise RuntimeError(f"CF: {type(err).__name__}: {str(err)[:160]}") from None
+                        if attempt == 2:
+                            self.log("CF backend failed 3x, falling back to typesafe direct")
+                            break
                         time.sleep(2 ** attempt)
             for attempt in range(5):
                 try:
@@ -532,6 +535,6 @@ def judge(crawl: dict, pages: list[dict], budget_usd: float, log=print, dfs: dic
         out["keywords"] = results
     jev.ledger["cost_usd"] = jev.cost()
     jev.ledger["usd_per_mtok"] = jev.rate
-    jev.ledger["backend"] = "typesafe" if jev.key else "cloudflare-workers-ai"
+    jev.ledger["backend"] = "cloudflare-workers-ai" if jev.cf_url else "typesafe"
     log(f"Jev: {jev.ledger['requests']} requests, {jev.ledger['input_tokens']} input tokens, ${jev.cost():.4f}, {jev.ledger['failed']} failed")
     return out
