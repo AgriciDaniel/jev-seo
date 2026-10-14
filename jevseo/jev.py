@@ -22,11 +22,11 @@ API = "https://api.typesafe.ai/v1/systemone"
 MODELS_API = "https://api.typesafe.ai/v1/models"
 MODEL = "jev-latest"
 USD_PER_MTOK = 0.042  # docs.typesafe.ai/models, retrieved 2026-09-20; re-check with the Jev brain staleness rule
-# Cloudflare Workers AI fallback: same typed-question protocol over chat completions.
-# Blended per-Mtok price for @cf/meta/llama-3.3-70b (input+output blended, conservative);
-# used only for the budget cap, actual ledger cost recomputed from real usage split.
-CF_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-CF_USD_PER_MTOK = 0.60
+# Cloudflare Workers AI fallback: hosts the same Jev model natively
+# (developers.cloudflare.com/ai/models/typesafe/jev) with the identical
+# typed-question protocol; only the endpoint and envelope differ.
+CF_MODEL = "typesafe/jev"
+CF_USD_PER_MTOK = 0.042  # input tokens; output and cached input are free
 PAGE_TEXT_CHARS = 6000
 ACT = 0.80  # Choice and Score confidence at or above this is decisive
 YES, NO = 0.80, 0.20  # Noul decisive bands (Noul has no confidence field)
@@ -332,29 +332,12 @@ def keyword_batches(keywords: list[dict], pages: list[dict], site_ctx: dict, siz
 
 
 # ---------------------------------------------------------------- client
-CF_PROMPT = """You are a strict SEO judge. You are given a JSON `state` and a set of \
-`questions`. Each question has a `type` and `criteria`:
-- "choice": pick exactly one criteria key as your answer.
-- "score": the criteria is an ordered list of levels; answer with the 0-based integer index.
-- "noul": a true/false judgement; answer with a float between 0 (false) and 1 (true).
-
-For every question id in `questions`, return an object in a single JSON object keyed by \
-question id. Do not add commentary. JSON schema per type:
-- choice: {"choice": "<criteria key>", "probabilities": {"<criteria key>": <0..1 for every option>}, "confidence": <0..1>}
-- score: {"score": <int>, "probabilities": {"<index>": <0..1 for every level>}, "confidence": <0..1>}
-- noul: {"noul": <0..1>}
-
-Probabilities must cover every option/level and sum to ~1. Judge only from the evidence \
-in `state`; never invent facts. Output raw JSON only.
-"""
-
-
 class Jev:
     def __init__(self, budget_usd: float = 0.25, log=print):
         self.key = secret("TYPESAFE_API_KEY")
         cf_token, cf_account = secret("CLOUDFLARE_API_TOKEN"), secret("CLOUDFLARE_ACCOUNT_ID")
         self.cf_token = cf_token
-        self.cf_url = f"https://api.cloudflare.com/client/v4/accounts/{cf_account}/ai/run/{CF_MODEL}" if cf_token and cf_account else None
+        self.cf_url = f"https://api.cloudflare.com/client/v4/accounts/{cf_account}/ai/run" if cf_token and cf_account else None
         self.budget = budget_usd
         self.log = log
         self.lock = threading.Lock()
@@ -369,32 +352,20 @@ class Jev:
         return round(self.ledger["input_tokens"] / 1e6 * self.rate + self.ledger["output_tokens"] / 1e6 * self.rate, 6)
 
     def _cf_answers(self, state: dict, questions: dict) -> dict:
-        """Cloudflare Workers AI backend: one chat call per state, strict JSON out."""
-        payload = {
-            "messages": [
-                {"role": "system", "content": CF_PROMPT},
-                {"role": "user", "content": json.dumps({"state": state, "questions": questions})},
-            ],
-            "temperature": 0,
-            "max_tokens": 2048,
-        }
-        r = requests.post(self.cf_url, json=payload,
+        """Cloudflare Workers AI backend: the native Jev model, same protocol."""
+        r = requests.post(self.cf_url, json={"model": CF_MODEL, "input": {"state": state, "questions": questions}},
                           headers={"Authorization": f"Bearer {self.cf_token}"}, timeout=120)
         if r.status_code != 200:
             raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
         data = r.json()
-        content = (data.get("result", {}).get("message", {}) or {}).get("content") or ""
-        content = re.sub(r"^```(?:json)?|```$", "", content.strip(), flags=re.M).strip()
-        start, end = content.find("{"), content.rfind("}")
-        if start < 0 or end <= start:
-            raise RuntimeError("no JSON object in model output")
-        answers = json.loads(content[start:end + 1])
-        usage = data.get("result", {}).get("usage") or data.get("usage") or {}
+        result = data.get("result") or {}
+        answers = result.get("answers") or {}
+        usage = result.get("usage") or data.get("usage") or {}
         with self.lock:
             self.ledger["requests"] += 1
-            self.ledger["input_tokens"] += usage.get("prompt_tokens", 0)
-            self.ledger["output_tokens"] += usage.get("completion_tokens", 0)
-            self.ledger["model_returned"] = data.get("model")
+            self.ledger["input_tokens"] += usage.get("input_tokens", usage.get("prompt_tokens", 0))
+            self.ledger["output_tokens"] += usage.get("output_tokens", usage.get("completion_tokens", 0))
+            self.ledger["model_returned"] = result.get("model", data.get("model"))
         missing = set(questions) - set(answers)
         if missing:
             raise RuntimeError(f"answers missing for {sorted(missing)}")
