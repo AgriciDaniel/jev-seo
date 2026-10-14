@@ -22,6 +22,11 @@ API = "https://api.typesafe.ai/v1/systemone"
 MODELS_API = "https://api.typesafe.ai/v1/models"
 MODEL = "jev-latest"
 USD_PER_MTOK = 0.042  # docs.typesafe.ai/models, retrieved 2026-09-20; re-check with the Jev brain staleness rule
+# Cloudflare Workers AI fallback: same typed-question protocol over chat completions.
+# Blended per-Mtok price for @cf/meta/llama-3.3-70b (input+output blended, conservative);
+# used only for the budget cap, actual ledger cost recomputed from real usage split.
+CF_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+CF_USD_PER_MTOK = 0.60
 PAGE_TEXT_CHARS = 6000
 ACT = 0.80  # Choice and Score confidence at or above this is decisive
 YES, NO = 0.80, 0.20  # Noul decisive bands (Noul has no confidence field)
@@ -327,31 +332,92 @@ def keyword_batches(keywords: list[dict], pages: list[dict], site_ctx: dict, siz
 
 
 # ---------------------------------------------------------------- client
+CF_PROMPT = """You are a strict SEO judge. You are given a JSON `state` and a set of \
+`questions`. Each question has a `type` and `criteria`:
+- "choice": pick exactly one criteria key as your answer.
+- "score": the criteria is an ordered list of levels; answer with the 0-based integer index.
+- "noul": a true/false judgement; answer with a float between 0 (false) and 1 (true).
+
+For every question id in `questions`, return an object in a single JSON object keyed by \
+question id. Do not add commentary. JSON schema per type:
+- choice: {"choice": "<criteria key>", "probabilities": {"<criteria key>": <0..1 for every option>}, "confidence": <0..1>}
+- score: {"score": <int>, "probabilities": {"<index>": <0..1 for every level>}, "confidence": <0..1>}
+- noul: {"noul": <0..1>}
+
+Probabilities must cover every option/level and sum to ~1. Judge only from the evidence \
+in `state`; never invent facts. Output raw JSON only.
+"""
+
+
 class Jev:
     def __init__(self, budget_usd: float = 0.25, log=print):
         self.key = secret("TYPESAFE_API_KEY")
+        cf_token, cf_account = secret("CLOUDFLARE_API_TOKEN"), secret("CLOUDFLARE_ACCOUNT_ID")
+        self.cf_token = cf_token
+        self.cf_url = f"https://api.cloudflare.com/client/v4/accounts/{cf_account}/ai/run/{CF_MODEL}" if cf_token and cf_account else None
         self.budget = budget_usd
         self.log = log
         self.lock = threading.Lock()
-        self.ledger = {"model_requested": MODEL, "model_returned": None, "requests": 0, "failed": 0, "input_tokens": 0, "output_tokens": 0, "est_reserved_tokens": 0, "skipped_budget": 0, "errors": []}
+        self.rate = USD_PER_MTOK if self.key else CF_USD_PER_MTOK
+        self.ledger = {"model_requested": MODEL if self.key else CF_MODEL, "model_returned": None, "requests": 0, "failed": 0, "input_tokens": 0, "output_tokens": 0, "est_reserved_tokens": 0, "skipped_budget": 0, "errors": []}
 
     @property
     def available(self) -> bool:
-        return bool(self.key)
+        return bool(self.key or self.cf_url)
 
     def cost(self) -> float:
-        return round(self.ledger["input_tokens"] / 1e6 * USD_PER_MTOK, 6)
+        return round(self.ledger["input_tokens"] / 1e6 * self.rate + self.ledger["output_tokens"] / 1e6 * self.rate, 6)
+
+    def _cf_answers(self, state: dict, questions: dict) -> dict:
+        """Cloudflare Workers AI backend: one chat call per state, strict JSON out."""
+        payload = {
+            "messages": [
+                {"role": "system", "content": CF_PROMPT},
+                {"role": "user", "content": json.dumps({"state": state, "questions": questions})},
+            ],
+            "temperature": 0,
+            "max_tokens": 2048,
+        }
+        r = requests.post(self.cf_url, json=payload,
+                          headers={"Authorization": f"Bearer {self.cf_token}"}, timeout=120)
+        if r.status_code != 200:
+            raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
+        data = r.json()
+        content = (data.get("result", {}).get("message", {}) or {}).get("content") or ""
+        content = re.sub(r"^```(?:json)?|```$", "", content.strip(), flags=re.M).strip()
+        start, end = content.find("{"), content.rfind("}")
+        if start < 0 or end <= start:
+            raise RuntimeError("no JSON object in model output")
+        answers = json.loads(content[start:end + 1])
+        usage = data.get("result", {}).get("usage") or data.get("usage") or {}
+        with self.lock:
+            self.ledger["requests"] += 1
+            self.ledger["input_tokens"] += usage.get("prompt_tokens", 0)
+            self.ledger["output_tokens"] += usage.get("completion_tokens", 0)
+            self.ledger["model_returned"] = data.get("model")
+        missing = set(questions) - set(answers)
+        if missing:
+            raise RuntimeError(f"answers missing for {sorted(missing)}")
+        return {k: validate(questions[k], answers[k]) for k in questions}
 
     def ask(self, state: dict, questions: dict) -> dict | None:
         body = json.dumps({"state": state, "model": MODEL, "questions": questions})
         est = len(body) // 3  # conservative token estimate for the budget reservation
         with self.lock:
-            spent = (self.ledger["input_tokens"] + self.ledger["est_reserved_tokens"]) / 1e6 * USD_PER_MTOK
-            if spent + est / 1e6 * USD_PER_MTOK > self.budget:
+            spent = (self.ledger["input_tokens"] + self.ledger["output_tokens"] + self.ledger["est_reserved_tokens"]) / 1e6 * self.rate
+            if spent + est / 1e6 * self.rate > self.budget:
                 self.ledger["skipped_budget"] += 1
                 return None
             self.ledger["est_reserved_tokens"] += est
         try:
+            if not self.key:  # Cloudflare backend
+                for attempt in range(3):
+                    try:
+                        return self._cf_answers(state, questions)
+                    except Exception as err:  # noqa: BLE001
+                        if attempt == 2:
+                            raise RuntimeError(f"CF: {type(err).__name__}: {str(err)[:160]}") from None
+                        time.sleep(2 ** attempt)
             for attempt in range(5):
                 try:
                     r = requests.post(API, data=body, headers={"Authorization": f"Bearer {self.key}", "Content-Type": "application/json"}, timeout=90)
@@ -431,7 +497,7 @@ def judge(crawl: dict, pages: list[dict], budget_usd: float, log=print, dfs: dic
     jev = Jev(budget_usd, log)
     out = {"available": jev.available, "site": None, "pages": {}, "pairs": [], "ledger": jev.ledger, "questions": {}}
     if not jev.available:
-        log("TYPESAFE_API_KEY not found: Jev judgments skipped; semantic sections will be marked not assessed.")
+        log("No TYPESAFE_API_KEY or CLOUDFLARE_API_TOKEN/CLOUDFLARE_ACCOUNT_ID: Jev judgments skipped.")
         return out
     home = next((p for p in pages if p["url"] == crawl["final_url"]), pages[0] if pages else None)
     if home is None:
@@ -494,6 +560,7 @@ def judge(crawl: dict, pages: list[dict], budget_usd: float, log=print, dfs: dic
                     results[kw] = {"relevance": ans[f"{kid}_rel"], "page": page, "page_url": catalogue.get(page["value"], {}).get("url"), "other_brand": ans[f"{kid}_other_brand"]}
         out["keywords"] = results
     jev.ledger["cost_usd"] = jev.cost()
-    jev.ledger["usd_per_mtok"] = USD_PER_MTOK
+    jev.ledger["usd_per_mtok"] = jev.rate
+    jev.ledger["backend"] = "typesafe" if jev.key else "cloudflare-workers-ai"
     log(f"Jev: {jev.ledger['requests']} requests, {jev.ledger['input_tokens']} input tokens, ${jev.cost():.4f}, {jev.ledger['failed']} failed")
     return out
