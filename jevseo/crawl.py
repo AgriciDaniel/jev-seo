@@ -85,7 +85,10 @@ class Fetcher:
             self._pace()
             try:
                 r = self.session.request(method, url, timeout=TIMEOUT, allow_redirects=False, **kw)
-            except (requests.RequestException, ValueError):
+            except (requests.RequestException, ValueError, AssertionError):
+                # urllib3 2.x can raise a bare AssertionError (pool is None)
+                # in racy connection-pool teardown - tolerate like any other
+                # failed probe (2026-10-24 fleet run).
                 return None
             if r.is_redirect and r.headers.get("location"):
                 history.append(r)
@@ -414,13 +417,20 @@ def crawl(start_url: str, max_pages: int = 60, max_depth: int = 5, workers: int 
             status_of[u] = p.get("status")
     log("checking link targets and a sample of outbound links")
     unchecked = [u for u in inlinks if u not in status_of and not SKIP_EXT.search(urlparse(u).path) and allowed(u)][:150]
+    def _safe_head(u):
+        try:
+            return fetcher.head(u)
+        except AssertionError:
+            return None  # urllib3 2.x racy pool teardown (2026-10-24)
+        except Exception:
+            return None  # a failed probe is a missing status, not a crash
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        for u, st in zip(unchecked, pool.map(fetcher.head, unchecked)):
+        for u, st in zip(unchecked, pool.map(_safe_head, unchecked)):
             status_of[u] = st
     externals = list(dict.fromkeys(l["url"] for p in pages.values() for l in p.get("links_external", [])))
     ext_sample = externals[:80]
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        ext_status = dict(zip(ext_sample, pool.map(fetcher.head, ext_sample)))
+        ext_status = dict(zip(ext_sample, pool.map(_safe_head, ext_sample)))
     for p in pages.values():
         u = p.get("url")
         p["inlinks"] = inlinks.get(u, 0)
