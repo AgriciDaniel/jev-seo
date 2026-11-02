@@ -82,7 +82,7 @@
   <div class="plan">
     {% for block in narrative.plan %}<div><h4>{{ block.horizon }}</h4><ul>{% for i in block['items'] %}<li>{{ i }}</li>{% endfor %}</ul></div>{% endfor %}
   </div>
-  {% if narrative.closing %}<p class="lede" style="margin-top:4mm">{{ narrative.closing }}</p>{% endif %}
+  {% if narrative.closing | default(none) %}<p class="lede" style="margin-top:4mm">{{ narrative.closing }}</p>{% endif %}
   <p class="caption">Written by: {{ narrative.author }}.{% if narrative.automatic %} A lead agent can replace this with a written narrative by adding narrative.json and re-rendering.{% endif %}</p>
 </section>
 
