@@ -82,7 +82,7 @@
   <div class="plan">
     {% for block in narrative.plan %}<div><h4>{{ block.horizon }}</h4><ul>{% for i in block['items'] %}<li>{{ i }}</li>{% endfor %}</ul></div>{% endfor %}
   </div>
-  {% if narrative.closing %}<p class="lede" style="margin-top:4mm">{{ narrative.closing }}</p>{% endif %}
+  {% if narrative.closing | default(none) %}<p class="lede" style="margin-top:4mm">{{ narrative.closing }}</p>{% endif %}
   <p class="caption">Written by: {{ narrative.author }}.{% if narrative.automatic %} A lead agent can replace this with a written narrative by adding narrative.json and re-rendering.{% endif %}</p>
 </section>
 
@@ -167,21 +167,23 @@
   <h2>Where the site ranks today</h2>
   <p class="lede">Google rankings, estimated traffic and links for {{ domain }} (location {{ dfs.location_code }}, language {{ dfs.language_code }}). Traffic is DataForSEO's estimate from rankings and search volumes, not measured visits.</p>
   <div class="tiles">
-    <div class="tile"><div class="v">{{ dfs.overview.count if dfs.overview.count is not none else 'n/a' }}</div><div class="l">keywords ranking in Google</div></div>
-    <div class="tile"><div class="v">{{ (dfs.overview.etv | round | int) if dfs.overview.etv is not none else 'n/a' }}</div><div class="l">estimated monthly visits (ETV)</div></div>
-    <div class="tile"><div class="v">{{ dfs.backlinks.referring_domains if dfs.backlinks.referring_domains is not none else 'n/a' }}</div><div class="l">referring domains</div></div>
-    <div class="tile"><div class="v">{{ dfs.backlinks.backlinks if dfs.backlinks.backlinks is not none else 'n/a' }}</div><div class="l">backlinks</div></div>
-    <div class="tile jev"><div class="v">{{ dfs.mentions.total if dfs.mentions and dfs.mentions.total is not none else 'n/a' }}</div><div class="l">mentions in AI answers</div></div>
+    <div class="tile"><div class="v">{{ dfs.overview.count if dfs.overview.count is defined and dfs.overview.count is not none else 'n/a' }}</div><div class="l">keywords ranking in Google</div></div>
+    <div class="tile"><div class="v">{{ (dfs.overview.etv | round | int) if dfs.overview.etv is defined and dfs.overview.etv is not none else 'n/a' }}</div><div class="l">estimated monthly visits (ETV)</div></div>
+    <div class="tile"><div class="v">{{ dfs.backlinks.referring_domains if dfs.backlinks.referring_domains is defined and dfs.backlinks.referring_domains is not none else 'n/a' }}</div><div class="l">referring domains</div></div>
+    <div class="tile"><div class="v">{{ dfs.backlinks.backlinks if dfs.backlinks.backlinks is defined and dfs.backlinks.backlinks is not none else 'n/a' }}</div><div class="l">backlinks</div></div>
+    <div class="tile jev"><div class="v">{{ dfs.mentions.total if dfs.mentions.total is defined and dfs.mentions.total is not none else 'n/a' }}</div><div class="l">mentions in AI answers</div></div>
   </div>
   <div class="grid3">
     <div>{{ chart('positions', 'Ranking keywords by Google position') }}</div>
     <div>{{ chart('referring_domains', 'Referring domains: the site (magenta) and domains ranking for the same keywords') }}</div>
   </div>
   <h3>Top ranking keywords</h3>
+  {% if dfs.ranked %}
   <table>
     <tr><th>Keyword</th><th class="num">Position</th><th class="num">Searches/mo</th><th>Ranking page</th><th class="num">Jev relevance</th></tr>
-    {% for k in dfs.ranked[:12] %}<tr><td>{{ k.keyword }}</td><td class="num">{{ k.position }}</td><td class="num">{{ '{:,}'.format(k.volume) if k.volume is not none else 'n/a' }}</td><td class="url">{{ k.page }}</td><td class="num">{{ '%.2f' % k.relevance if k.relevance is not none else '–' }}</td></tr>{% endfor %}
+    {% for k in dfs.ranked[:12] %}<tr><td>{{ k.keyword }}</td><td class="num">{{ k.position | default(none) or '–' }}</td><td class="num">{{ '{:,}'.format(k.volume) if k.volume | default(none) is not none else 'n/a' }}</td><td class="url">{{ k.page }}</td><td class="num">{{ '%.2f' % k.relevance if k.relevance | default(none) is not none else '–' }}</td></tr>{% endfor %}
   </table>
+  {% else %}<p class="muted">DataForSEO returned no ranking keywords for this domain.</p>{% endif %}
   {% if dfs.ranked_total and dfs.ranked_total > 12 %}<p class="caption">Showing 12 of {{ dfs.ranked_total }} ranking keywords; all are in the workbook.</p>{% endif %}
 </section>
 <section class="section">
@@ -192,7 +194,7 @@
   {% if dfs.opportunities %}
   <table>
     <tr><th>Keyword</th><th class="num">Searches/mo</th><th class="num">Difficulty</th><th>Intent</th><th class="num">Jev relevance</th><th>Page to own it</th></tr>
-    {% for k in dfs.opportunities[:6] %}<tr><td>{{ k.keyword }}</td><td class="num">{{ '{:,}'.format(k.volume) }}</td><td class="num">{{ k.difficulty if k.difficulty is not none else 'n/a' }}</td><td>{{ k.intent or '–' }}</td><td class="num">{{ '%.2f' % k.relevance if k.relevance is not none else '–' }}</td><td class="url">{{ k.target }}</td></tr>{% endfor %}
+    {% for k in dfs.opportunities[:6] %}<tr><td>{{ k.keyword }}</td><td class="num">{{ '{:,}'.format(k.volume) if k.volume | default(none) is not none else 'n/a' }}</td><td class="num">{{ k.difficulty if k.difficulty | default(none) is not none else 'n/a' }}</td><td>{{ k.intent | default(none) or '–' }}</td><td class="num">{{ '%.2f' % k.relevance if k.relevance | default(none) is not none else '–' }}</td><td class="url">{{ k.target }}</td></tr>{% endfor %}
   </table>
   {% else %}<p class="muted">No relevant keyword opportunities passed Jev's relevance filter.</p>{% endif %}
   {% if dfs.serps %}
@@ -200,10 +202,10 @@
   <h3>Live Google results for the top keywords</h3>
   <table>
     <tr><th>Keyword</th><th class="num">Site position</th><th>AI Overview</th><th>Top 3 results</th></tr>
-    {% for sp in dfs.serps %}<tr><td>{{ sp.keyword }}</td><td class="num">{{ sp.own_position or 'not in top 10' }}</td><td>{% if sp.ai_overview %}{% if sp.ai_overview_cites_site %}<span class="ok">yes, cites the site</span>{% else %}<span class="bad">yes, site not cited</span>{% endif %}{% else %}none{% endif %}</td><td>{{ sp.top[:3] | map(attribute='domain') | join(', ') }}</td></tr>{% endfor %}
+    {% for sp in dfs.serps %}<tr><td>{{ sp.keyword }}</td><td class="num">{{ sp.own_position | default(none) or 'not in top 10' }}</td><td>{% if sp.ai_overview %}{% if sp.ai_overview_cites_site %}<span class="ok">yes, cites the site</span>{% else %}<span class="bad">yes, site not cited</span>{% endif %}{% else %}none{% endif %}</td><td>{{ sp.top[:3] | map(attribute='domain') | join(', ') }}</td></tr>{% endfor %}
   </table>
   </div>
-  {% endif %}
+  {% else %}<p class="muted">No live Google results were collected.</p>{% endif %}
 </section>
 {% endif %}
 

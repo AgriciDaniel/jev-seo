@@ -9,6 +9,11 @@ def cell(v) -> str:
     return str("" if v is None else v).replace("|", "\\|").replace("\n", " ")
 
 
+def na(v) -> str:
+    """A metric that DataForSEO may not have returned."""
+    return "n/a" if v is None else str(v)
+
+
 def label(v) -> str:
     return cell((v or "").replace("_", " "))
 
@@ -82,18 +87,24 @@ def write_md(vm: dict, path: Path) -> Path:
         ov, bl = x["overview"], x["backlinks"]
         add("## Search visibility (DataForSEO)\n")
         add(f"Location {x['location_code']}, language {x['language_code']}. Traffic (ETV) is DataForSEO's estimate, not measured visits.\n")
-        add(f"| Ranking keywords | Est. monthly visits | Referring domains | Backlinks | AI answer mentions |\n|---:|---:|---:|---:|---:|\n| {ov.get('count')} | {round(ov['etv']) if ov.get('etv') is not None else 'n/a'} | {bl.get('referring_domains')} | {bl.get('backlinks')} | {(x['mentions'] or {}).get('total')} |\n")
+        add(f"| Ranking keywords | Est. monthly visits | Referring domains | Backlinks | AI answer mentions |\n|---:|---:|---:|---:|---:|\n| {na(ov['count'])} | {na(None if ov['etv'] is None else round(ov['etv']))} | {na(bl['referring_domains'])} | {na(bl['backlinks'])} | {na(x['mentions']['total'])} |\n")
         add(img(vm, "positions", "Ranking keywords by position"))
         add(img(vm, "referring_domains", "Referring domains compared"))
-        add("| Keyword | Position | Searches/mo | Ranking page | Jev relevance |\n|---|---:|---:|---|---:|")
-        for k in x["ranked"][:20]:
-            add(f"| {cell(k['keyword'])} | {k.get('position')} | {k.get('volume')} | {k['page']} | {'' if k['relevance'] is None else format(k['relevance'], '.2f')} |")
+        if x["ranked"]:
+            add("| Keyword | Position | Searches/mo | Ranking page | Jev relevance |\n|---|---:|---:|---|---:|")
+            for k in x["ranked"][:20]:
+                add(f"| {cell(k['keyword'])} | {k.get('position')} | {k.get('volume')} | {k['page']} | {'' if k['relevance'] is None else format(k['relevance'], '.2f')} |")
+        else:
+            add("_DataForSEO returned no ranking keywords for this domain._")
         add("\n### Keywords worth winning\n")
         add(img(vm, "opportunities", "Keyword opportunities"))
-        add("| Keyword | Searches/mo | Difficulty | Intent | Jev relevance | Page to own it |\n|---|---:|---:|---|---:|---|")
-        for k in x["opportunities"]:
-            rel = "" if k.get("relevance") is None else f"{k['relevance']:.2f}"
-            add(f"| {cell(k['keyword'])} | {k.get('volume')} | {k.get('difficulty') if k.get('difficulty') is not None else 'n/a'} | {cell(k.get('intent'))} | {rel} | {k['target']} |")
+        if x["opportunities"]:
+            add("| Keyword | Searches/mo | Difficulty | Intent | Jev relevance | Page to own it |\n|---|---:|---:|---|---:|---|")
+            for k in x["opportunities"]:
+                rel = "" if k.get("relevance") is None else f"{k['relevance']:.2f}"
+                add(f"| {cell(k['keyword'])} | {k.get('volume')} | {k.get('difficulty') if k.get('difficulty') is not None else 'n/a'} | {cell(k.get('intent'))} | {rel} | {k['target']} |")
+        else:
+            add("_No relevant keyword opportunities passed Jev's relevance filter._")
         add("")
         if x["serps"]:
             add("| Keyword | Site position | AI Overview | Top 3 |\n|---|---:|---|---|")
@@ -101,6 +112,8 @@ def write_md(vm: dict, path: Path) -> Path:
                 aio = ("yes, cites the site" if sp["ai_overview_cites_site"] else "yes, site not cited") if sp["ai_overview"] else "none"
                 add(f"| {cell(sp['keyword'])} | {sp['own_position'] or 'not in top 10'} | {aio} | {', '.join(t['domain'] for t in sp['top'][:3])} |")
             add("")
+        else:
+            add("_No live Google results were collected._\n")
 
     add("## What the crawl found\n")
     add(img(vm, "funnel", "From discovered URLs to Jev judgments"))

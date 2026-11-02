@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from pathlib import Path
 
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+from jinja2 import Environment, FileSystemLoader, StrictUndefined, select_autoescape
 
 from jevseo import jev
 from jevseo.checks import RULES
@@ -24,6 +24,8 @@ def font_css() -> str:
 def context(vm: dict) -> dict:
     d = vm["d"]
     return vm | {
+        # The Jev ledger is {} when Jev was not used and lacks cost fields in older audits.
+        "ledger": dict.fromkeys(("model_requested", "model_returned", "requests", "input_tokens", "failed", "skipped_budget", "cost_usd", "usd_per_mtok")) | vm["ledger"],
         "css": font_css() + (TEMPLATES / "report.css").read_text(),
         "date": datetime.fromisoformat(d["run"]["finished_at"]).strftime("%d %B %Y"),
         "generated": datetime.now().strftime("%Y-%m-%d %H:%M"),
@@ -37,7 +39,7 @@ def context(vm: dict) -> dict:
 
 
 def render_html(vm: dict) -> str:
-    env = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=select_autoescape(["html", "j2"]))
+    env = Environment(loader=FileSystemLoader(TEMPLATES), autoescape=select_autoescape(["html", "j2"]), undefined=StrictUndefined)
     return env.get_template("report.html.j2").render(**context(vm))
 
 

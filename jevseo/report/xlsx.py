@@ -263,7 +263,7 @@ def write_xlsx(vm: dict, path: Path) -> Path:
         wf.add_chart(bc, f"A{len(prow) + 4}")
 
     # ---------------- DataForSEO (full mode)
-    x = d.get("dataforseo") if (d.get("dataforseo") or {}).get("available") else None
+    x = vm["dfs"]["data"] if vm.get("dfs") else None  # normalized: no section is None
     if x:
         kj = d["jev"].get("keywords") or {}
 
@@ -273,7 +273,7 @@ def write_xlsx(vm: dict, path: Path) -> Path:
             return round(v, 2) if isinstance(v, float) else v
 
         wk = wb.create_sheet("Rankings")
-        rows = [[k["keyword"], k.get("position"), k.get("volume"), k.get("difficulty"), k.get("intent"), k.get("cpc"), round(k["etv"], 1) if k.get("etv") is not None else None, k.get("url"), jv(k["keyword"], "relevance")] for k in x.get("ranked") or []]
+        rows = [[k["keyword"], k.get("position"), k.get("volume"), k.get("difficulty"), k.get("intent"), k.get("cpc"), round(k["etv"], 1) if k.get("etv") is not None else None, k.get("url"), jv(k["keyword"], "relevance")] for k in x["ranked"]]
         table(wk, ["Keyword", "Position", "Searches/mo", "Difficulty", "Intent", "CPC (USD)", "Est. visits (ETV)", "Ranking URL", "Jev relevance"], rows, [34, 9, 12, 10, 14, 10, 12, 50, 12])
         for i in range(2, len(rows) + 2):
             link(wk[f"H{i}"], wk[f"H{i}"].value)
@@ -281,7 +281,7 @@ def write_xlsx(vm: dict, path: Path) -> Path:
         opp_ids = {f["id"]: f for f in d["findings"] if f["id"] in ("dfs_existing_page", "dfs_new_page")}
         judged_set = {k for k in kj}
         rows = []
-        for k in x.get("opportunities") or []:
+        for k in x["opportunities"]:
             a = kj.get(k["keyword"]) or {}
             verdict = "kept" if any(k["keyword"] == r["keyword"] for f in opp_ids.values() for r in f["detail"].get("keywords", [])) else ("dropped" if k["keyword"] in judged_set else "not judged")
             page = (a.get("page") or {}).get("value")
@@ -291,18 +291,18 @@ def write_xlsx(vm: dict, path: Path) -> Path:
         table(wo, ["Keyword", "Searches/mo", "Difficulty", "Intent", "Source", "Jev relevance", "Jev P(other brand)", "Page to own it (Jev)", "Kept by Jev filter"], rows, [34, 12, 10, 14, 22, 12, 14, 46, 14])
         cf(wo, f"I2:I{len(rows) + 1}", CellIsRule(operator="equal", formula=['"kept"'], fill=PatternFill("solid", fgColor="DFF3DF")))
         wcm = wb.create_sheet("Competitors")
-        rd = {r["domain"]: r.get("referring_domains") for r in x.get("referring_domains") or []}
-        rows = [[c["domain"], c.get("shared_keywords"), round(c["avg_position"], 1) if c.get("avg_position") is not None else None, c.get("keywords"), round(c["etv"]) if c.get("etv") is not None else None, rd.get(c["domain"])] for c in x.get("competitors_all") or []]
-        rows.insert(0, [d["site"]["domain"] + " (this site)", None, None, (x.get("overview") or {}).get("count"), round((x.get("overview") or {}).get("etv") or 0), rd.get(d["site"]["domain"])])
+        rd = {r["domain"]: r.get("referring_domains") for r in x["referring_domains"]}
+        rows = [[c["domain"], c.get("shared_keywords"), round(c["avg_position"], 1) if c.get("avg_position") is not None else None, c.get("keywords"), round(c["etv"]) if c.get("etv") is not None else None, rd.get(c["domain"])] for c in x["competitors_all"]]
+        rows.insert(0, [d["site"]["domain"] + " (this site)", None, None, x["overview"]["count"], round(x["overview"]["etv"]) if x["overview"]["etv"] is not None else None, rd.get(d["site"]["domain"])])
         table(wcm, ["Domain", "Shared keywords", "Avg position", "Ranking keywords", "Est. visits (ETV)", "Referring domains"], rows, [34, 14, 12, 16, 16, 16])
         ws2 = wb.create_sheet("SERPs")
-        rows = [[s2["keyword"], s2["own_position"], "yes" if s2["ai_overview"] else "no", "yes" if s2["ai_overview_cites_site"] else "no", ", ".join(s2["ai_overview_domains"]), ", ".join(s2["features"]), "\n".join(f"{t['position']}. {t['domain']}" for t in s2["top"])] for s2 in x.get("serps") or []]
+        rows = [[s2["keyword"], s2["own_position"], "yes" if s2["ai_overview"] else "no", "yes" if s2["ai_overview_cites_site"] else "no", ", ".join(s2["ai_overview_domains"]), ", ".join(s2["features"]), "\n".join(f"{t['position']}. {t['domain']}" for t in s2["top"])] for s2 in x["serps"]]
         table(ws2, ["Keyword", "Site position", "AI Overview", "Cites site", "AI Overview sources", "SERP features", "Top 10"], rows, [30, 12, 11, 10, 46, 40, 34])
-        m = x.get("mentions") or {}
+        m = x["mentions"]
         wm2 = wb.create_sheet("AI mentions")
-        rows = [[i.get("platform"), i.get("model"), i.get("question"), i.get("ai_search_volume"), ", ".join(i.get("sources") or [])] for i in m.get("items") or []]
+        rows = [[i.get("platform"), i.get("model"), i.get("question"), i.get("ai_search_volume"), ", ".join(i.get("sources") or [])] for i in m["items"]]
         table(wm2, ["Platform", "Model", "Question", "AI search volume", "Sources cited"], rows, [14, 20, 60, 14, 50])
-        wm2.cell(len(rows) + 3, 1, f"Total mentions reported by DataForSEO LLM Mentions: {m.get('total')}. Showing a sample of {len(rows)}.").font = Font(name="Inter", italic=True, size=9)
+        wm2.cell(len(rows) + 3, 1, f"Total mentions reported by DataForSEO LLM Mentions: {m['total'] if m['total'] is not None else 'n/a'}. Showing a sample of {len(rows)}.").font = Font(name="Inter", italic=True, size=9)
 
     # ---------------- Charts (images from the report)
     wc = wb.create_sheet("Charts")
