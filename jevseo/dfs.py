@@ -34,6 +34,9 @@ PLATFORMS = {
     "facebook.com", "instagram.com", "amazon.com", "quora.com", "apple.com", "google.com", "microsoft.com", "tiktok.com",
     "pinterest.com", "stackoverflow.com", "npmjs.com", "pypi.org", "producthunt.com", "substack.com", "dev.to",
 }
+# Fields kept from domain_rank_overview and backlinks/summary; the report normalizes missing sections to these keys.
+OVERVIEW_KEYS = ("count", "etv", "estimated_paid_traffic_cost", "pos_1", "pos_2_3", "pos_4_10", "pos_11_20", "pos_21_30", "pos_31_40", "pos_41_50", "pos_51_60", "pos_61_70", "pos_71_80", "pos_81_90", "pos_91_100", "is_new", "is_up", "is_down", "is_lost")
+BACKLINK_KEYS = ("rank", "backlinks", "referring_domains", "referring_main_domains", "referring_ips", "broken_backlinks", "broken_pages", "backlinks_spam_score", "crawled_pages", "referring_links_types", "referring_links_attributes")
 SERP_FEATURES = ["ai_overview", "featured_snippet", "people_also_ask", "local_pack", "video", "images", "shopping", "top_stories", "knowledge_graph", "discussions_and_forums"]
 
 
@@ -124,7 +127,7 @@ def collect(domain: str, homepage: dict, loc: int, lang: str, budget: float, log
         over, rank, comp, back = f_over.result(), f_rank.result(), f_comp.result(), f_back.result()
 
     organic = ((over or {}).get("items") or [{}])[0].get("metrics", {}).get("organic") if over else None
-    out["overview"] = None if organic is None else {k: organic.get(k) for k in ("count", "etv", "estimated_paid_traffic_cost", "pos_1", "pos_2_3", "pos_4_10", "pos_11_20", "pos_21_30", "pos_31_40", "pos_41_50", "pos_51_60", "pos_61_70", "pos_71_80", "pos_81_90", "pos_91_100", "is_new", "is_up", "is_down", "is_lost")}
+    out["overview"] = None if organic is None else {k: organic.get(k) for k in OVERVIEW_KEYS}
     ranked = []
     for it in (rank or {}).get("items") or []:
         se = (it.get("ranked_serp_element") or {}).get("serp_item") or {}
@@ -138,7 +141,7 @@ def collect(domain: str, homepage: dict, loc: int, lang: str, budget: float, log
     ]
     out["competitors_all"] = [c for c in comps if c["domain"] != bare(domain)]
     out["competitors"] = [c for c in out["competitors_all"] if c["domain"] not in PLATFORMS][:8]
-    out["backlinks"] = None if back is None else {k: back.get(k) for k in ("rank", "backlinks", "referring_domains", "referring_main_domains", "referring_ips", "broken_backlinks", "broken_pages", "backlinks_spam_score", "crawled_pages", "referring_links_types", "referring_links_attributes")}
+    out["backlinks"] = None if back is None else {k: back.get(k) for k in BACKLINK_KEYS}
 
     log("DataForSEO: referring domains for competitors, keyword ideas, gaps")
     # Compare against sites of a similar size first: a giant's keyword gap is mostly unrelated to a small site.

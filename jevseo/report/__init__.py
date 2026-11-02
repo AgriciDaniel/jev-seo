@@ -155,6 +155,34 @@ def auto_narrative(d: dict) -> dict:
     }
 
 
+DFS_LISTS = ("ranked", "competitors_all", "competitors", "referring_domains", "opportunities", "seeds", "serps")
+
+
+def normalize_dfs(x: dict | None) -> dict | None:
+    """DataForSEO data with every section present, so writers never meet None for a section.
+
+    Any section can be null (call failed, skipped by budget, or the domain has no data):
+    overview and backlinks become dicts whose fields are None, lists become [].
+    Returns None when DataForSEO was not used.
+    """
+    if not (x or {}).get("available"):
+        return None
+    from jevseo.dfs import BACKLINK_KEYS, OVERVIEW_KEYS
+
+    out = dict(x)
+    out["overview"] = {k: None for k in OVERVIEW_KEYS} | (x.get("overview") or {})
+    out["backlinks"] = {k: None for k in BACKLINK_KEYS} | (x.get("backlinks") or {})
+    for k in DFS_LISTS:
+        out[k] = x.get(k) or []
+    out["mentions"] = {"total": None} | (x.get("mentions") or {})
+    out["mentions"]["items"] = out["mentions"].get("items") or []
+    out["ledger"] = {"requests": 0, "cost_usd": 0.0, "failed": 0, "skipped_budget": 0} | (x.get("ledger") or {})
+    for k in ("ranked_total", "reused_from", "location_code", "language_code"):
+        out.setdefault(k, None)
+    out["has_overview"] = bool(x.get("overview"))
+    return out
+
+
 def view_model(d: dict, folder: Path) -> dict:
     site = d["site"]
     domain = site["domain"]
@@ -225,7 +253,7 @@ def view_model(d: dict, folder: Path) -> dict:
     charts.invest_matrix(cs, invest)
 
     # Full mode: DataForSEO views, with Jev relevance and page mapping attached
-    x = d.get("dataforseo") if (d.get("dataforseo") or {}).get("available") else None
+    x = normalize_dfs(d.get("dataforseo"))
     kj = d["jev"].get("keywords") or {}
     dfs_vm = None
     if x:
@@ -235,7 +263,7 @@ def view_model(d: dict, folder: Path) -> dict:
             a = kj.get(kw) or {}
             return (a.get(key) or {}).get("value")
 
-        ranked_rows = [k | {"relevance": kjv(k["keyword"], "relevance"), "page": short(k.get("url") or "", domain)} for k in (x.get("ranked") or [])[:25]]
+        ranked_rows = [k | {"relevance": kjv(k["keyword"], "relevance"), "page": short(k.get("url") or "", domain)} for k in x["ranked"][:25]]
         opp_actions = {a["id"]: a for a in d["findings"] if a["id"] in ("dfs_existing_page", "dfs_new_page")}
         opp_rows = []
         for fid, f in opp_actions.items():
@@ -244,17 +272,18 @@ def view_model(d: dict, folder: Path) -> dict:
         from jevseo.score import opportunity_key
 
         opp_rows.sort(key=opportunity_key, reverse=True)
-        charts.positions(cs, x.get("overview"))
-        charts.referring_domains(cs, x.get("referring_domains") or [], domain)
+        charts.positions(cs, x["overview"] if x["has_overview"] else None)
+        charts.referring_domains(cs, x["referring_domains"], domain)
         charts.opportunities(cs, opp_rows)
-        ment = x.get("mentions") or {}
-        plat = Counter(m.get("platform") or "unknown" for m in ment.get("items") or [])
+        ment = x["mentions"]
+        plat = Counter(m.get("platform") or "unknown" for m in ment["items"])
         charts.donut(cs, "mention_platforms", plat.most_common(), center="sampled mentions")
         dfs_vm = {
-            "overview": x.get("overview") or {}, "backlinks": x.get("backlinks") or {}, "ranked": ranked_rows, "ranked_total": x.get("ranked_total"),
-            "opportunities": opp_rows[:15], "n_opportunities": len(opp_rows), "serps": x.get("serps") or [], "competitors": x.get("competitors") or [],
-            "referring_domains": x.get("referring_domains") or [], "mentions": ment, "ledger": x["ledger"], "reused_from": x.get("reused_from"),
+            "overview": x["overview"], "backlinks": x["backlinks"], "ranked": ranked_rows, "ranked_total": x["ranked_total"],
+            "opportunities": opp_rows[:15], "n_opportunities": len(opp_rows), "serps": x["serps"], "competitors": x["competitors"],
+            "referring_domains": x["referring_domains"], "mentions": ment, "ledger": x["ledger"], "reused_from": x["reused_from"],
             "location_code": x["location_code"], "language_code": x["language_code"],
+            "data": x,  # full normalized collection, for writers that list everything (workbook)
         }
 
     page_rows = []

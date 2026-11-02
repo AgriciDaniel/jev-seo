@@ -383,13 +383,13 @@ class DataForSEOTests(unittest.TestCase):
 
 
 class RenderTests(unittest.TestCase):
-    def build(self, narrative=None, full=False):
+    def build(self, narrative=None, full=False, dfs=None):
         from jevseo.cli import digest
         from jevseo.report import build
 
         crawl = crawl_fixture()
         judged = judged_fixture(crawl) | ({"keywords": keyword_judgments()} if full else {})
-        dfs = dfs_fixture() if full else None
+        dfs = dfs or (dfs_fixture() if full else None)
         findings = checks.run_checks(crawl) + score.jev_findings(crawl, judged) + score.dfs_findings(crawl, judged, dfs)
         data = {"schema_version": "1.0", "tool": {"name": "jev-seo", "version": "test"},
                 "run": {"started_at": "2026-09-21T10:00:00+00:00", "finished_at": "2026-09-21T10:05:00+00:00", "timings_s": {}, "options": {}},
@@ -428,6 +428,19 @@ class RenderTests(unittest.TestCase):
         from openpyxl import load_workbook
 
         self.assertTrue({"Rankings", "Opportunities", "Competitors", "SERPs", "AI mentions"} <= set(load_workbook(out["xlsx"]).sheetnames))
+
+    def test_dataforseo_without_overview_renders(self):
+        # A domain with no ranking keywords: DataForSEO returns no overview, and other sections can be null or empty.
+        dfs = dfs_fixture() | {"overview": None, "backlinks": None, "mentions": None, "ranked": [], "ranked_total": None, "opportunities": [],
+                               "competitors": [], "competitors_all": None, "referring_domains": None, "serps": None, "seeds": None}
+        tmp, out = self.build(full=True, dfs=dfs)
+        for fmt in ("pdf", "xlsx", "md"):
+            self.assertTrue(out[fmt].is_file(), fmt)
+        self.assertEqual(out["pdf"].read_bytes()[:5], b"%PDF-")
+        md = out["md"].read_text()
+        self.assertIn("| n/a | n/a | n/a | n/a | n/a |", md)
+        self.assertIn("returned no ranking keywords", md)
+        self.assertIn("returned no ranking keywords", (tmp / "report.html").read_text())
 
     def test_no_jev_audit_renders_and_is_marked_partial(self):
         from jevseo.cli import digest
